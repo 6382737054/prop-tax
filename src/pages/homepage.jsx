@@ -52,21 +52,14 @@ const HomePage = () => {
     return classes[color];
   };
 
-
-  const latestSurveys = [
-    { name: "Public Healthcare Survey 2024", date: "28 Oct 2024" },
-    { name: "Education Infrastructure Assessment", date: "27 Oct 2024" },
-    { name: "Rural Development Survey", date: "26 Oct 2024" },
-    { name: "Urban Transportation Survey", date: "25 Oct 2024" },
-    { name: "Water Resources Management", date: "24 Oct 2024" }
-  ];
-
   const completionStatus = [
-    { name: "Education Service Survey", status: "Complete" },
-    { name: "Healthcare Assessment 2024", status: "Complete" },
-    { name: "Rural Infrastructure Review", status: "Complete" },
-    { name: "Urban Development Plan", status: "Complete" },
-    { name: "Water Resource Survey", status: "Complete" }
+    { name: "Education Service Survey", date: "28 Oct 2024", status: "Complete" },
+    { name: "Healthcare Assessment 2024", date: "27 Oct 2024", status: "Complete" },
+    { name: "Rural Infrastructure Review", date: "26 Oct 2024", status: "Complete" },
+    { name: "Urban Development Plan", date: "25 Oct 2024", status: "Complete" },
+    { name: "Water Resource Survey", date: "24 Oct 2024", status: "Complete" },
+    { name: "Waste Management Survey", date: "23 Oct 2024", status: "Complete" },
+    { name: "Agriculture Productivity Study", date: "22 Oct 2024", status: "Complete" }
   ];
 
   const dailySurveyData = [
@@ -128,32 +121,19 @@ const HomePage = () => {
           })}
         </div>
 
-        {/* Latest Surveys and Completion Status */}
+        {/* Completed Surveys and Status */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Latest Surveys */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Latest Surveys
+              Completed Surveys
             </h2>
-            <div className="space-y-3">
-              {latestSurveys.map((survey, index) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium text-gray-700">{survey.name}</span>
-                  <span className="text-sm text-gray-500">{survey.date}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Completion Status */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Completion Status
-            </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {completionStatus.map((item, index) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium text-gray-700">{item.name}</span>
+                <div key={index} className="flex justify-between items-center">
+                  <div className="space-y-1">
+                    <h3 className="font-medium text-gray-700">{item.name}</h3>
+                    <p className="text-sm text-gray-500">{item.date}</p>
+                  </div>
                   <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
                     {item.status}
                   </span>
@@ -161,27 +141,27 @@ const HomePage = () => {
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Bar Chart */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6">
-            Daily Survey Count
-          </h2>
-          <div style={{ height: '400px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailySurveyData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8884d8">
-                  {dailySurveyData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={barColors[entry.day]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Bar Chart */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-6">
+              Daily Survey Count
+            </h2>
+            <div style={{ height: '400px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailySurveyData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8884d8">
+                    {dailySurveyData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={barColors[entry.day]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown, UserCircle, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../apiConfig/api';
-import { API_URL } from '../config';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -104,111 +102,108 @@ const Header = () => {
 
   return (
     <header className="relative z-50">
- <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* Left Section: Logo and Title */}
-            <div className="flex items-center space-x-6">
-              <img 
-                src="/images/tnlogo.png"
-                alt="TN Government Logo" 
-                className="h-14 w-14 object-contain cursor-pointer transition-transform hover:scale-105"
+      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 py-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          {/* Left Section: Logo and Title */}
+          <div className="flex items-center space-x-6">
+            <img 
+              src="/images/tnlogo.png"
+              alt="TN Government Logo" 
+              className="h-14 w-14 object-contain cursor-pointer transition-transform hover:scale-105"
+              onClick={handleHomeClick}
+            />
+            <div className="text-white border-l-2 border-white/20 pl-6">
+              <h1 className="text-2xl font-bold tracking-wide">Government of Tamil Nadu</h1>
+              <p className="text-sm text-white/90 mt-1">e-Governance Portal</p>
+            </div>
+          </div>
+
+          {/* Right Section: Navigation, Login/Profile, and Time */}
+          <div className="hidden md:flex items-center space-x-8">
+            <nav className="flex items-center space-x-8">
+              <button 
                 onClick={handleHomeClick}
-              />
-              <div className="text-white border-l-2 border-white/20 pl-6">
-                <h1 className="text-2xl font-bold tracking-wide">Government of Tamil Nadu</h1>
-                <p className="text-sm text-white/90 mt-1">e-Governance Portal</p>
-              </div>
-            </div>
-
-            {/* Right Section: Navigation, Login/Profile, and Time */}
-            <div className="hidden md:flex items-center space-x-8">
-              <nav className="flex items-center space-x-8">
-                <button 
-                  onClick={handleHomeClick}
-                  className="text-white hover:text-blue-200 font-medium transition-colors"
-                >
-                  Home
-                </button>
-                <button 
-                  onClick={handleSurveyClick}
-                  className="text-white hover:text-blue-200 font-medium transition-colors"
-                >
-                  Survey
-                </button>
-
-                {!isLoggedIn ? (
-                  <button 
-                    onClick={handleLoginClick}
-                    className="text-white hover:text-blue-200 font-medium transition-colors"
-                  >
-                    Login
-                  </button>
-                ) : (
-                  <div className="relative user-dropdown">
-                    <button 
-                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center space-x-2 text-white hover:text-blue-200 font-medium"
-                    >
-                      <UserCircle className="h-5 w-5" />
-                      <span>{userData?.name || 'User'}</span>
-                      <ChevronDown 
-                        className={`h-4 w-4 transform transition-transform duration-200 ${
-                          userDropdownOpen ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-                    
-                    {userDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden">
-                        <button 
-                          onClick={handleProfileClick}
-                          className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
-                        >
-                          <UserCircle className="h-4 w-4 mr-2" />
-                          Profile
-                        </button>
-                        <button 
-  onClick={() => {
-    handleLogout();
-    navigate('/login');
-  }}
-  className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
->
-  <LogOut className="h-4 w-4 mr-2" />
-  Logout
-</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </nav>
-
-              {/* Time and Date */}
-              <div className="flex items-center space-x-6 pl-8 border-l border-white/20">
-                <div className="text-white/90 text-sm font-medium">
-                  {formatTime(currentTime)}
-                </div>
-                <div className="text-white/90 text-sm font-medium">
-                  {currentTime.toLocaleDateString('en-US', { 
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 text-white hover:text-blue-200 transition-colors focus:outline-none"
-                aria-label="Menu"
+                className="text-white hover:text-blue-200 font-medium transition-colors"
               >
-                <Menu className="h-7 w-7" />
+                Home
               </button>
+              <button 
+                onClick={handleSurveyClick}
+                className="text-white hover:text-blue-200 font-medium transition-colors"
+              >
+                Survey
+              </button>
+
+              {!isLoggedIn ? (
+                <button 
+                  onClick={handleLoginClick}
+                  className="text-white hover:text-blue-200 font-medium transition-colors"
+                >
+                  Login
+                </button>
+              ) : (
+                <div className="relative user-dropdown">
+                  <button 
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className="flex items-center space-x-2 text-white hover:text-blue-200 font-medium"
+                  >
+                    <UserCircle className="h-5 w-5" />
+                    <span>{userData?.name || 'User'}</span>
+                    <ChevronDown 
+                      className={`h-4 w-4 transform transition-transform duration-200 ${
+                        userDropdownOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden">
+                      <button 
+                        onClick={handleProfileClick}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                      >
+                        <UserCircle className="h-4 w-4 mr-2" />
+                        Profile
+                      </button>
+                      <button 
+                        onClick={() => {
+                          handleLogout();
+                          navigate('/login');
+                        }}
+                        className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
+
+            <div className="flex items-center space-x-6 pl-8 border-l border-white/20">
+              <div className="text-white/90 text-sm font-medium">
+                {formatTime(currentTime)}
+              </div>
+              <div className="text-white/90 text-sm font-medium">
+                {currentTime.toLocaleDateString('en-US', { 
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </div>
             </div>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 text-white hover:text-blue-200 transition-colors focus:outline-none"
+              aria-label="Menu"
+            >
+              <Menu className="h-7 w-7" />
+            </button>
           </div>
         </div>
       </div>
