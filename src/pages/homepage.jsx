@@ -1,30 +1,31 @@
 import React from 'react';
 import { ClipboardCheck, ClipboardList, Calendar, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
+import surveyData from './surveyData.json';
 
 const HomePage = () => {
   const statsData = [
     {
       title: "Total Completed Surveys",
-      value: "2,465",
+      value: surveyData.stats.totalCompleted.toLocaleString(),
       icon: ClipboardCheck,
       color: "blue"
     },
     {
       title: "Total Pending Surveys",
-      value: "145",
+      value: surveyData.stats.totalPending.toLocaleString(),
       icon: ClipboardList,
       color: "red"
     },
     {
       title: "Monthly Survey Count",
-      value: "856",
+      value: surveyData.stats.monthlySurveys.toLocaleString(),
       icon: Calendar,
       color: "green"
     },
     {
       title: "Last 7 Days Surveys",
-      value: "234",
+      value: surveyData.stats.lastSevenDays.toLocaleString(),
       icon: Clock,
       color: "orange"
     }
@@ -51,26 +52,6 @@ const HomePage = () => {
     };
     return classes[color];
   };
-
-  const completionStatus = [
-    { name: "Education Service Survey", date: "28 Oct 2024", status: "Complete" },
-    { name: "Healthcare Assessment 2024", date: "27 Oct 2024", status: "Complete" },
-    { name: "Rural Infrastructure Review", date: "26 Oct 2024", status: "Complete" },
-    { name: "Urban Development Plan", date: "25 Oct 2024", status: "Complete" },
-    { name: "Water Resource Survey", date: "24 Oct 2024", status: "Complete" },
-    { name: "Waste Management Survey", date: "23 Oct 2024", status: "Complete" },
-    { name: "Agriculture Productivity Study", date: "22 Oct 2024", status: "Complete" }
-  ];
-
-  const dailySurveyData = [
-    { day: "Monday", count: 15 },
-    { day: "Tuesday", count: 15 },
-    { day: "Wednesday", count: 20 },
-    { day: "Thursday", count: 20 },
-    { day: "Friday", count: 10 },
-    { day: "Saturday", count: 10 },
-    { day: "Sunday", count: 10 }
-  ];
 
   const barColors = {
     Monday: '#ff0000',    // Red
@@ -128,7 +109,7 @@ const HomePage = () => {
               Completed Surveys
             </h2>
             <div className="space-y-4">
-              {completionStatus.map((item, index) => (
+              {surveyData.districtData.map((item, index) => (
                 <div key={index} className="flex justify-between items-center">
                   <div className="space-y-1">
                     <h3 className="font-medium text-gray-700">{item.name}</h3>
@@ -149,13 +130,13 @@ const HomePage = () => {
             </h2>
             <div style={{ height: '400px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailySurveyData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <BarChart data={surveyData.dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="day" />
+                  <XAxis dataKey="day" tickSize={6} tickFormatter={(value) => value.slice(0, 3)} />
                   <YAxis />
                   <Tooltip />
                   <Bar dataKey="count" fill="#8884d8">
-                    {dailySurveyData.map((entry, index) => (
+                    {surveyData.dailyData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={barColors[entry.day]} />
                     ))}
                   </Bar>

@@ -3,7 +3,7 @@ import { Eye, EyeOff, UserCircle, Lock, AlertCircle } from 'lucide-react';
 import api from '../apiConfig/api';
 import { useNavigate } from 'react-router-dom';
 
-const LoginPage = () => {
+const LoginPage = ({ setIsLoggedIn }) => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -67,7 +67,10 @@ const LoginPage = () => {
         // Show success message
         alert('Login Successful');
         
-        // Navigate to home page
+        // Set the isLoggedIn state to true
+        setIsLoggedIn(true);
+        
+        // Navigate to the home page
         navigate('/home');
       } else {
         setError(response.data.message || 'Login failed');

@@ -1,0 +1,89 @@
+{
+    "stats": {
+      "totalCompleted": 25,
+      "totalPending": 14,
+      "monthlySurveys": 100,
+      "lastSevenDays": 20
+    },
+    "districtData": [
+      {
+        "name": "Theni",
+        "date": "28 Oct 2024",
+        "status": "Completed",
+        "pending": 0,
+        "completed": 300
+      },
+      {
+        "name": "Kanjeepuram",
+        "date": "27 Oct 2024",
+        "status": "Completed",
+        "pending": 200,
+        "completed": 450
+      },
+      {
+        "name": "Chennai",
+        "date": "26 Oct 2024",
+        "status": "Completed",
+        "pending": 0,
+        "completed": 275
+      },
+      {
+        "name": "Erode",
+        "date": "25 Oct 2024",
+        "status": "Completed",
+        "pending": 0,
+        "completed": 325
+      },
+      {
+        "name": "Coimbatore",
+        "date": "24 Oct 2024",
+        "status": "Completed",
+        "pending": 0,
+        "completed": 400
+      },
+      {
+        "name": "Ooty",
+        "date": "23 Oct 2024",
+        "status": "Completed",
+        "pending": 0,
+        "completed": 350
+      },
+      {
+        "name": "Kodaikanal",
+        "date": "22 Oct 2024",
+        "status": "Completed",
+        "pending": 0,
+        "completed": 365
+      }
+    ],
+    "dailyData": [
+      {
+        "day": "Monday",
+        "count": 15
+      },
+      {
+        "day": "Tuesday",
+        "count": 15
+      },
+      {
+        "day": "Wednesday",
+        "count": 40
+      },
+      {
+        "day": "Thursday",
+        "count": 20
+      },
+      {
+        "day": "Friday",
+        "count": 10
+      },
+      {
+        "day": "Saturday",
+        "count": 30
+      },
+      {
+        "day": "Sunday",
+        "count": 10
+      }
+    ]
+  }
