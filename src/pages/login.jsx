@@ -1,23 +1,83 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, UserCircle, Lock, AlertCircle } from 'lucide-react';
+import api from '../apiConfig/api';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (e) => {
+  // Check for stored credentials on component mount
+  React.useEffect(() => {
+    const storedUser = localStorage.getItem('rememberedUser');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setFormData(userData);
+      setRememberMe(true);
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your login logic here
     if (!formData.username || !formData.password) {
       setError('Please fill in all fields');
       return;
     }
+    
     setError('');
-    console.log('Login attempted with:', formData);
+    setLoading(true);
+    
+    try {
+      const response = await api.post('/login', {
+        username: formData.username,
+        password: formData.password
+      });
+
+      console.log('Login response:', response.data);
+      
+      if (!response.data.error) {
+        // Store auth token
+        localStorage.setItem('authToken', response.data.data.authToken);
+        
+        // Store user data
+        const userData = {
+          name: response.data.data.name || 'User',
+          username: formData.username,
+          role: response.data.data.role || 'user',
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem('rememberedUser', JSON.stringify(formData));
+        } else {
+          localStorage.removeItem('rememberedUser');
+        }
+        
+        // Store login timestamp
+        localStorage.setItem('lastLoginTime', new Date().toISOString());
+        
+        // Show success message
+        alert('Login Successful');
+        
+        // Navigate to home page
+        navigate('/home');
+      } else {
+        setError(response.data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -26,6 +86,11 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
+    setError('');
+  };
+
+  const handleRememberMe = (e) => {
+    setRememberMe(e.target.checked);
   };
 
   return (
@@ -74,7 +139,7 @@ const LoginPage = () => {
                   type="text"
                   required
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md 
-                           focus:outline-none focus:ring-tn-primary focus:border-tn-primary"
+                           focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your username"
                   value={formData.username}
                   onChange={handleChange}
@@ -97,7 +162,7 @@ const LoginPage = () => {
                   type={showPassword ? "text" : "password"}
                   required
                   className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md 
-                           focus:outline-none focus:ring-tn-primary focus:border-tn-primary"
+                           focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
@@ -124,7 +189,9 @@ const LoginPage = () => {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-tn-primary focus:ring-tn-primary border-gray-300 rounded"
+                checked={rememberMe}
+                onChange={handleRememberMe}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                 Remember me
@@ -135,11 +202,13 @@ const LoginPage = () => {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md 
-                         shadow-sm text-sm font-medium text-white bg-tn-primary hover:bg-blue-800 
-                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-tn-primary"
+                disabled={loading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md 
+                         shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 
+                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                         ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                Sign in
+                {loading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>

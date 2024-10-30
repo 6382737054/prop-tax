@@ -588,7 +588,7 @@ const SurveyPage = () => {
                 </div>
               </div>
       
-              {/* Steps Overview */}
+              Steps Overview
               <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
                   Survey Process
@@ -608,12 +608,12 @@ const SurveyPage = () => {
           ) : (
             // Survey Form Container
             <div className="max-w-4xl mx-auto py-12 px-4">
-              {/* Progress Bar */}
+              {/* Progress Bar
               <ProgressBar 
                 progress={getProgress()}
                 currentStep={step}
                 totalSteps={4}
-              />
+              /> */}
       
               <div className="bg-white rounded-2xl shadow-xl p-8 transition-all duration-500">
                 {/* Back Button */}
