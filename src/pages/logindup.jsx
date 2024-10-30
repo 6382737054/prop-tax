@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, UserCircle, Lock, AlertCircle } from 'lucide-react';
+import api from '../apiConfig/api';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage = ({ setIsLoggedIn }) => {
@@ -23,59 +24,63 @@ const LoginPage = ({ setIsLoggedIn }) => {
     }
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.username || !formData.password) {
       setError('Please fill in all fields');
       return;
     }
-
-    // Hardcoded credentials
-    const hardcodedUsername = 'superadmin@dmapt';
-    const hardcodedPassword = 'dirdma@123';
-
+    
     setError('');
     setLoading(true);
-
-    // Simulate login process
-    if (
-      formData.username === hardcodedUsername &&
-      formData.password === hardcodedPassword
-    ) {
-      // Store auth token
-      localStorage.setItem('authToken', 'hardcoded_auth_token');
-
-      // Store user data
-      const userData = {
-        name: 'Super Admin',
+    
+    try {
+      const response = await api.post('/login', {
         username: formData.username,
-        role: 'admin'
-      };
-      localStorage.setItem('userData', JSON.stringify(userData));
+        password: formData.password
+      });
 
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem('rememberedUser', JSON.stringify(formData));
+      console.log('Login response:', response.data);
+      
+      if (!response.data.error) {
+        // Store auth token
+        localStorage.setItem('authToken', response.data.data.authToken);
+        
+        // Store user data
+        const userData = {
+          name: response.data.data.name || 'User',
+          username: formData.username,
+          role: response.data.data.role || 'user',
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem('rememberedUser', JSON.stringify(formData));
+        } else {
+          localStorage.removeItem('rememberedUser');
+        }
+        
+        // Store login timestamp
+        localStorage.setItem('lastLoginTime', new Date().toISOString());
+        
+        // Show success message
+        alert('Login Successful');
+        
+        // Set the isLoggedIn state to true
+        setIsLoggedIn(true);
+        
+        // Navigate to the home page
+        navigate('/home');
       } else {
-        localStorage.removeItem('rememberedUser');
+        setError(response.data.message || 'Login failed');
       }
-
-      // Store login timestamp
-      localStorage.setItem('lastLoginTime', new Date().toISOString());
-
-      // Show success message
-      alert('Login Successful');
-
-      // Set the isLoggedIn state to true
-      setIsLoggedIn(true);
-
-      // Navigate to the home page
-      navigate('/home');
-    } else {
-      setError('Invalid username or password');
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleChange = (e) => {
