@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  MapPin, User, Building, Navigation, AlertCircle, 
-  MapPinned, CheckCircle
+  MapPin, Edit2, CheckCircle, AlertCircle, X
 } from 'lucide-react';
 import filterData from './filterData.json';
 
+// Reusable Input Components
 const InputField = ({ label, id, error, ...props }) => (
   <div className="space-y-2">
     <label htmlFor={id} className="block text-sm font-medium text-gray-700">
@@ -35,7 +35,7 @@ const SelectField = ({ label, id, options, error, ...props }) => (
       {...props}
     >
       <option value="">Select {label}</option>
-      {options.map((option) => (
+      {options?.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -50,75 +50,196 @@ const SelectField = ({ label, id, options, error, ...props }) => (
   </div>
 );
 
-const SurveyForm = () => {
-  const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [locationError, setLocationError] = useState('');
-  const [formErrors, setFormErrors] = useState({});
-  const [filteredStreets, setFilteredStreets] = useState([]);
-  const [filteredLocalities, setFilteredLocalities] = useState([]);
-  const [filteredOwners, setFilteredOwners] = useState([]);
-  const [filteredBuildingUsages, setFilteredBuildingUsages] = useState([
-    { value: 'Residential', label: 'Residential' },
-    { value: 'Commercial', label: 'Commercial' },
-    { value: 'Government', label: 'Government' },
-    { value: 'Educational', label: 'Educational' }
-  ]);
-  const [filteredBuildingStructures, setFilteredBuildingStructures] = useState([]);
+const SuccessPopup = ({ onClose }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 relative">
+      <button 
+        onClick={onClose}
+        className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+      >
+        <X size={20} />
+      </button>
+      <div className="text-center">
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+          <CheckCircle className="h-6 w-6 text-green-600" />
+        </div>
+        <h3 className="mt-4 text-lg font-medium text-gray-900">Thanks for submitting!</h3>
+        <p className="mt-2 text-sm text-gray-500">Your changes have been saved successfully.</p>
+        <button
+          onClick={onClose}
+          className="mt-5 w-full inline-flex justify-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
-  // Get unique ward names from data
-  const wardOptions = [...new Set(filterData.data.map(item => item.WardName))].map(ward => ({
-    value: ward,
-    label: ward
-  }));
+const WardDataTable = ({ data, onEdit }) => (
+  <div className="mt-8 overflow-x-auto">
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Door No
+          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Owner Name
+          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Street Name
+          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {data.map((row) => (
+          <tr key={row.id}>
+            <td className="px-6 py-4 whitespace-nowrap">{row.NewDoorNo}</td>
+            <td className="px-6 py-4 whitespace-nowrap">{row.Ownername}</td>
+            <td className="px-6 py-4 whitespace-nowrap">{row.StreetName}</td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <button
+                onClick={() => onEdit(row)}
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <Edit2 size={16} />
+                <span className="underline">Edit</span>
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
-  // Get unique building structures from data
-  const buildingStructureOptions = [...new Set(filterData.data.map(item => item.BuildingType))].map(structure => ({
-    value: structure,
-    label: structure
-  }));
-
-  const [formData, setFormData] = useState({
-    wardName: '',
-    streetName: '',
-    localityName: '',
-    ownerName: '',
+const EditForm = ({ selectedRow, onSubmit }) => {
+  const [editData, setEditData] = useState({
+    ownerName: selectedRow?.Ownername || '',
     phoneNumber: '',
-    totalFloors: '',
-    latitude: '',
-    longitude: '',
     buildingUsage: '',
     buildingStructure: ''
   });
 
-  // Update available streets, localities, and owners when ward changes
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const buildingUsageOptions = [
+    { value: 'Residential', label: 'Residential' },
+    { value: 'Commercial', label: 'Commercial' },
+    { value: 'Educational', label: 'Educational' },
+    { value: 'Government', label: 'Government' }
+  ];
+
+  const buildingStructureOptions = [
+    { value: 'RCC', label: 'RCC Sheet' },
+    { value: 'THATCHED', label: 'Thatched' },
+    { value: 'AC-SHEET', label: 'AC Sheet' }
+  ];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setShowSuccess(true);
+    onSubmit(editData);
+  };
+
+  return (
+    <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+      <h3 className="text-lg font-medium text-gray-900 mb-6">Edit Details</h3>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <InputField
+          label="Confirm Owner Name"
+          id="ownerName"
+          value={editData.ownerName}
+          disabled
+        />
+        <InputField
+          label="Phone Number"
+          id="phoneNumber"
+          type="tel"
+          value={editData.phoneNumber}
+          onChange={(e) => setEditData(prev => ({...prev, phoneNumber: e.target.value}))}
+          required
+        />
+        <SelectField
+          label="Building Usage"
+          id="buildingUsage"
+          value={editData.buildingUsage}
+          onChange={(e) => setEditData(prev => ({...prev, buildingUsage: e.target.value}))}
+          options={buildingUsageOptions}
+          required
+        />
+        <SelectField
+          label="Building Structure"
+          id="buildingStructure"
+          value={editData.buildingStructure}
+          onChange={(e) => setEditData(prev => ({...prev, buildingStructure: e.target.value}))}
+          options={buildingStructureOptions}
+          required
+        />
+        <button
+          type="submit"
+          className="w-full py-3 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Update Details
+        </button>
+      </form>
+      
+      {showSuccess && (
+        <SuccessPopup 
+          onClose={() => {
+            setShowSuccess(false);
+            setEditData({
+              ownerName: '',
+              phoneNumber: '',
+              buildingUsage: '',
+              buildingStructure: ''
+            });
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const SurveyForm = () => {
+  const [formData, setFormData] = useState({
+    wardName: '',
+    streetName: '',
+    localityName: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [filteredData, setFilteredData] = useState([]);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [filteredStreets, setFilteredStreets] = useState([]);
+  const [filteredLocalities, setFilteredLocalities] = useState([]);
+
   useEffect(() => {
     if (formData.wardName) {
-      const filteredData = filterData.data.filter(
-        item => item.WardName === formData.wardName
-      );
+      const wardData = filterData.data.filter(item => item.WardName === formData.wardName);
       
-      const streets = [...new Set(filteredData.map(item => item.StreetName))].map(street => ({
+      const streets = [...new Set(wardData.map(item => item.StreetName))].map(street => ({
         value: street,
         label: street
       }));
       setFilteredStreets(streets);
 
-      const localities = [...new Set(filteredData.map(item => item.LocalityName))].map(locality => ({
+      const localities = [...new Set(wardData.map(item => item.LocalityName))].map(locality => ({
         value: locality,
         label: locality
       }));
       setFilteredLocalities(localities);
-
-      const owners = [...new Set(filteredData.filter(
-        item => item.WardName === formData.wardName
-      ).map(item => item.Ownername))].map(owner => ({
-        value: owner,
-        label: owner
-      }));
-      setFilteredOwners(owners);
     }
   }, [formData.wardName]);
+
+  const wardOptions = [...new Set(filterData.data.map(item => item.WardName))].map(ward => ({
+    value: ward,
+    label: ward
+  }));
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -132,274 +253,111 @@ const SurveyForm = () => {
     }));
   };
 
-  const validateStep = (currentStep) => {
+  const validateForm = () => {
     const errors = {};
-    switch (currentStep) {
-      case 1:
-        if (!formData.wardName) errors.wardName = 'Ward name is required';
-        if (!formData.streetName) errors.streetName = 'Street name is required';
-        if (!formData.localityName) errors.localityName = 'Locality name is required';
-        break;
-      case 2:
-        if (!formData.ownerName) errors.ownerName = 'Owner name is required';
-        if (!formData.phoneNumber) errors.phoneNumber = 'Phone number is required';
-        if (!/^\d{10}$/.test(formData.phoneNumber)) errors.phoneNumber = 'Invalid phone number';
-        if (!formData.totalFloors) errors.totalFloors = 'Total floors is required';
-        break;
-      case 3:
-        if (!formData.latitude) errors.latitude = 'Latitude is required';
-        if (!formData.longitude) errors.longitude = 'Longitude is required';
-        break;
-      case 4:
-        if (!formData.buildingUsage) errors.buildingUsage = 'Building usage is required';
-        if (!formData.buildingStructure) errors.buildingStructure = 'Building structure is required';
-        break;
-      default:
-        break;
-    }
+    if (!formData.wardName) errors.wardName = 'Ward name is required';
+    if (!formData.streetName) errors.streetName = 'Street name is required';
+    if (!formData.localityName) errors.localityName = 'Locality name is required';
     return errors;
   };
 
-  const handleNext = () => {
-    const errors = validateStep(step);
+  const handleSubmit = () => {
+    const errors = validateForm();
     if (Object.keys(errors).length === 0) {
-      if (step === 4) {
-        handleSubmit();
-      } else {
-        setStep((prevStep) => prevStep + 1);
-        setFormErrors({});
-      }
+      const filtered = filterData.data.filter(item => 
+        item.WardName === formData.wardName &&
+        item.StreetName === formData.streetName &&
+        item.LocalityName === formData.localityName
+      );
+      setFilteredData(filtered);
+      setSubmitted(true);
+      setSelectedRow(null);
     } else {
       setFormErrors(errors);
     }
   };
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep((prevStep) => prevStep - 1);
-      setFormErrors({});
-    }
+  const handleEdit = (row) => {
+    setSelectedRow(row);
   };
 
-  const determineLocation = () => {
-    setIsLoading(true);
-    setLocationError('');
-
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation not supported');
-      setIsLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setFormData(prev => ({
-          ...prev,
-          latitude: position.coords.latitude.toFixed(6),
-          longitude: position.coords.longitude.toFixed(6)
-        }));
-        setIsLoading(false);
-      },
-      (error) => {
-        setLocationError('Unable to retrieve location');
-        setIsLoading(false);
-      }
-    );
-  };
-
-  const handleSubmit = () => {
-    console.log('Form submitted:', formData);
-    // Add your submission logic here
+  const handleUpdateSubmit = (editData) => {
+    console.log('Updated Data:', {
+      ...selectedRow,
+      ...editData
+    });
+    // Reset form data
+    setFormData({
+      wardName: '',
+      streetName: '',
+      localityName: ''
+    });
+    setFilteredData([]);
+    setSubmitted(false);
+    setSelectedRow(null);
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 pt-36">
+    <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-8">
-        {step > 1 && (
-          <button
-            onClick={handleBack}
-            className="mb-6 text-gray-600 hover:text-gray-800"
-          >
-            ← Back
-          </button>
-        )}
-
-        {step === 1 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-xl font-semibold text-gray-700 mb-6">
-              <MapPin className="text-blue-500" />
-              Location Details
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <SelectField
-                label="Ward Name"
-                id="wardName"
-                name="wardName"
-                value={formData.wardName}
-                onChange={handleInputChange}
-                options={wardOptions}
-                error={formErrors.wardName}
-              />
-              <SelectField
-                label="Street Name"
-                id="streetName"
-                name="streetName"
-                value={formData.streetName}
-                onChange={handleInputChange}
-                options={filteredStreets}
-                error={formErrors.streetName}
-                disabled={!formData.wardName}
-              />
-              <SelectField
-                label="Locality Name"
-                id="localityName"
-                name="localityName"
-                value={formData.localityName}
-                onChange={handleInputChange}
-                options={filteredLocalities}
-                error={formErrors.localityName}
-                disabled={!formData.wardName}
-              />
-            </div>
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 text-xl font-semibold text-gray-700 mb-6">
+            <MapPin className="text-blue-500" />
+            Location Details
           </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-xl font-semibold text-gray-700 mb-6">
-              <User className="text-blue-500" />
-              Owner Details
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <SelectField
-                label="Owner Name"
-                id="ownerName"
-                name="ownerName"
-                value={formData.ownerName}
-                onChange={handleInputChange}
-                options={filteredOwners}
-                error={formErrors.ownerName}
-                disabled={!formData.wardName}
-              />
-              <InputField
-                label="Phone Number"
-                id="phoneNumber"
-                name="phoneNumber"
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                maxLength={10}
-                error={formErrors.phoneNumber}
-              />
-              <SelectField
-                label="Total Floors"
-                id="totalFloors"
-                name="totalFloors"
-                value={formData.totalFloors}
-                onChange={handleInputChange}
-                options={[
-                  { value: '1', label: '1' },
-                  { value: '2', label: '2' },
-                  { value: '3', label: '3' },
-                  { value: '4', label: '4' },
-                  { value: '5', label: '5' },
-                  { value: '6', label: '6' },
-                  { value: '7', label: '7' },
-                  { value: '8', label: '8' },
-                  { value: '9', label: '9' },
-                  { value: '10', label: '10' }
-                ]}
-                error={formErrors.totalFloors}
-              />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <SelectField
+              label="Ward Name"
+              id="wardName"
+              name="wardName"
+              value={formData.wardName}
+              onChange={handleInputChange}
+              options={wardOptions}
+              error={formErrors.wardName}
+            />
+            <SelectField
+              label="Street Name"
+              id="streetName"
+              name="streetName"
+              value={formData.streetName}
+              onChange={handleInputChange}
+              options={filteredStreets}
+              error={formErrors.streetName}
+              disabled={!formData.wardName}
+            />
+            <SelectField
+              label="Locality Name"
+              id="localityName"
+              name="localityName"
+              value={formData.localityName}
+              onChange={handleInputChange}
+              options={filteredLocalities}
+              error={formErrors.localityName}
+              disabled={!formData.wardName}
+            />
           </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-xl font-semibold text-gray-700 mb-6">
-              <MapPinned className="text-blue-500" />
-              Location Coordinates
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <InputField
-                label="Latitude"
-                id="latitude"
-                name="latitude"
-                type="text"
-                value={formData.latitude}
-                onChange={handleInputChange}
-                error={formErrors.latitude}
-              />
-              <InputField
-                label="Longitude"
-                id="longitude"
-                name="longitude"
-                type="text"
-                value={formData.longitude}
-                onChange={handleInputChange}
-                error={formErrors.longitude}
-              />
-            </div>
-            <button
-              onClick={determineLocation}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 p-4 bg-gray-100 hover:bg-gray-200 rounded-lg"
-            >
-              <Navigation className={isLoading ? 'animate-spin' : ''} />
-              {isLoading ? 'Getting Location...' : 'Get My Location'}
-            </button>
-            {locationError && (
-              <div className="text-red-500 text-sm">{locationError}</div>
-            )}
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-xl font-semibold text-gray-700 mb-6">
-              <Building className="text-blue-500" />
-              Building Details
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <SelectField
-                label="Building Usage"
-                id="buildingUsage"
-                name="buildingUsage"
-                value={formData.buildingUsage}
-                onChange={handleInputChange}
-                options={filteredBuildingUsages}
-                error={formErrors.buildingUsage}
-              />
-              <SelectField
-                label="Building Structure"
-                id="buildingStructure"
-                name="buildingStructure"
-                value={formData.buildingStructure}
-                onChange={handleInputChange}
-                options={buildingStructureOptions}
-                error={formErrors.buildingStructure}
-              />
-            </div>
-          </div>
-        )}
+        </div>
 
         <div className="flex justify-end mt-8">
           <button
-            onClick={handleNext}
-            className={`
-              flex items-center gap-2 px-6 py-3 rounded-lg text-white
-              ${step === 4 ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}
-              transition-colors
-            `}
+            onClick={handleSubmit}
+            className="flex items-center gap-2 px-6 py-3 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors"
           >
-            {step === 4 ? (
-              <>Submit <CheckCircle size={20} /></>
-            ) : (
-              <>Next Step →</>
-            )}
+            Submit <CheckCircle size={20} />
           </button>
         </div>
+
+        {submitted && (
+          <>
+            <WardDataTable data={filteredData} onEdit={handleEdit} />
+            {selectedRow && (
+              <EditForm 
+                selectedRow={selectedRow}
+                onSubmit={handleUpdateSubmit}
+              />
+            )}
+          </>
+        )}
       </div>
     </div>
   );

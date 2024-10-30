@@ -1,8 +1,8 @@
 {
     "stats": {
-      "totalCompleted": 25,
-      "totalPending": 14,
-      "monthlySurveys": 100,
+      "totalCompleted": 100,
+      "totalPending": 75,
+      "monthlySurveys": 50,
       "lastSevenDays": 20
     },
     "districtData": [
@@ -59,31 +59,31 @@
     "dailyData": [
       {
         "day": "Monday",
-        "count": 15
+        "count": 3
       },
       {
         "day": "Tuesday",
-        "count": 15
+        "count": 3
       },
       {
         "day": "Wednesday",
-        "count": 40
+        "count": 3
       },
       {
         "day": "Thursday",
-        "count": 20
+        "count": 2
       },
       {
         "day": "Friday",
-        "count": 10
+        "count": 2
       },
       {
         "day": "Saturday",
-        "count": 30
+        "count": 4
       },
       {
         "day": "Sunday",
-        "count": 10
+        "count": 3
       }
     ]
   }
