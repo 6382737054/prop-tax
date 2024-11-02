@@ -14,7 +14,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Enhanced session validation
+  // Enhanced session validation without clearing storage
   const validateSession = () => {
     try {
       const authToken = localStorage.getItem('authToken');
@@ -39,7 +39,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
     }
   };
 
-  // Check for existing session on mount with enhanced validation
+  // Check for existing session on mount without clearing storage
   useEffect(() => {
     const checkSession = () => {
       try {
@@ -47,12 +47,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
           setIsLoggedIn(true);
           navigate('/home', { replace: true });
         } else {
-          // Clear invalid session data but keep remembered user
-          const rememberedUser = localStorage.getItem('rememberedUser');
-          localStorage.clear();
-          if (rememberedUser) {
-            localStorage.setItem('rememberedUser', rememberedUser);
-          }
+          // Don't clear storage, just update state
           setIsLoggedIn(false);
         }
       } catch (error) {
@@ -65,9 +60,9 @@ const LoginPage = ({ setIsLoggedIn }) => {
     // Listen for storage changes
     window.addEventListener('storage', checkSession);
     return () => window.removeEventListener('storage', checkSession);
-  }, [setIsLoggedIn, navigate, validateSession]);
+  }, [setIsLoggedIn, navigate]);
 
-  // Load remembered credentials
+  // Load remembered credentials if they exist
   useEffect(() => {
     const storedUser = localStorage.getItem('rememberedUser');
     if (storedUser) {
@@ -77,7 +72,6 @@ const LoginPage = ({ setIsLoggedIn }) => {
         setRememberMe(true);
       } catch (error) {
         console.error('Error loading remembered user:', error);
-        localStorage.removeItem('rememberedUser');
       }
     }
   }, []);
@@ -103,7 +97,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
         const sessionData = {
           token: response.data.authToken,
           timestamp: new Date().toISOString(),
-          expiresIn: '7d', // 7 days
+          expiresIn: '7d',
           lastActivity: new Date().toISOString()
         };
 
@@ -118,8 +112,6 @@ const LoginPage = ({ setIsLoggedIn }) => {
             username: formData.username,
             password: formData.password
           }));
-        } else {
-          localStorage.removeItem('rememberedUser');
         }
 
         // Update global state and navigate
@@ -129,13 +121,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
     } catch (error) {
       console.error('Login error:', error);
       setError(error.response?.data?.message || 'Invalid username or password');
-      
-      // Clear any invalid session data
-      const rememberedUser = localStorage.getItem('rememberedUser');
-      localStorage.clear();
-      if (rememberedUser && rememberMe) {
-        localStorage.setItem('rememberedUser', rememberedUser);
-      }
+      // Don't clear localStorage on login error
     } finally {
       setLoading(false);
     }

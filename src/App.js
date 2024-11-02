@@ -3,23 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/header';
 import LoginPage from './pages/login';
 import SurveyForm from './pages/test';
+import VerificationPage from './pages/verificationpage';
 import HomePage from './pages/homepage';
 import './App.css';
 
 function App() {
-  // Initialize auth state with proper validation
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     try {
       const authToken = localStorage.getItem('authToken');
-      const sessionData = JSON.parse(localStorage.getItem('sessionData') || '{}');
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-
-      if (authToken && userData?.data?.authToken && sessionData?.token) {
-        const expirationTime = new Date(sessionData.timestamp);
-        expirationTime.setHours(expirationTime.getHours() + 24 * 7); // 7 days
-        return new Date() < expirationTime;
-      }
-      return false;
+      return !!authToken;
     } catch {
       return false;
     }
@@ -27,48 +19,19 @@ function App() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth check and set up listeners
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Call checkAuth on each page load
-        await checkAuth();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    // Set up periodic auth check
-    const authCheckInterval = setInterval(checkAuth, 3600000); // Check every hour
-
-    // Cleanup
-    return () => {
-      clearInterval(authCheckInterval);
-    };
-  }, []);
-
-  // Comprehensive auth check function
   const checkAuth = () => {
     try {
       const authToken = localStorage.getItem('authToken');
-      const sessionData = JSON.parse(localStorage.getItem('sessionData') || '{}');
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-
-      if (authToken && userData?.data?.authToken && sessionData?.token) {
-        const expirationTime = new Date(sessionData.timestamp);
-        expirationTime.setHours(expirationTime.getHours() + 24 * 7); // 7 days
-
-        if (new Date() < expirationTime) {
+      
+      if (authToken) {
+        if (!isLoggedIn) {
           setIsLoggedIn(true);
-          return true;
-        } else {
-          setIsLoggedIn(false);
-          return false;
         }
+        return true;
       } else {
-        setIsLoggedIn(false);
+        if (isLoggedIn) {
+          setIsLoggedIn(false);
+        }
         return false;
       }
     } catch (error) {
@@ -78,7 +41,30 @@ function App() {
     }
   };
 
-  // Loading Component
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        await checkAuth();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'authToken') {
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const LoadingSpinner = () => (
     <div className="min-h-screen flex items-center justify-center">
       <div className="relative">
@@ -88,7 +74,6 @@ function App() {
     </div>
   );
 
-  // Protected Route Component
   const ProtectedRoute = ({ children }) => {
     if (isLoading) {
       return <LoadingSpinner />;
@@ -101,7 +86,6 @@ function App() {
     return children;
   };
 
-  // 404 Component
   const NotFound = () => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full px-6 py-8 bg-white rounded-lg shadow-lg text-center">
@@ -118,7 +102,6 @@ function App() {
     </div>
   );
 
-  // Show loading spinner while initializing
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -147,6 +130,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <SurveyForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* New Verification Route */}
+          <Route
+            path="/verify/:id"
+            element={
+              <ProtectedRoute>
+                <VerificationPage />
               </ProtectedRoute>
             }
           />

@@ -180,7 +180,6 @@ const VerificationPage = () => {
               <h1 className="text-2xl font-bold text-gray-900">Property Details Verification</h1>
             </div>
             <div className="flex gap-4">
-             
             </div>
           </div>
         </div>
@@ -204,83 +203,83 @@ const VerificationPage = () => {
           </label>
         </DetailSection>
 
-     {/* Property Information */}
-<DetailSection title="Property Information">
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {/* Location Details */}
-    <div className="bg-white p-6 rounded-lg border hover:shadow-lg transition-shadow">
-
-      <div className="grid gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Zone ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.zoneId}
-            onChange={(e) => handleInputChange('zoneId', e.target.value)}
-            placeholder="Enter Zone ID"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Ward ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.wardId}
-            onChange={(e) => handleInputChange('wardId', e.target.value)}
-            placeholder="Enter Ward ID"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Area ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.areaId}
-            onChange={(e) => handleInputChange('areaId', e.target.value)}
-            placeholder="Enter Area ID"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Locality ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.localityId}
-            onChange={(e) => handleInputChange('localityId', e.target.value)}
-            placeholder="Enter Locality ID"
-          />
-        </div>
-      </div>
-    </div>
+        {/* Property Information */}
+        <DetailSection title="Property Information">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Location Details */}
+            <div className="bg-white p-6 rounded-lg border hover:shadow-lg transition-shadow">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Zone ID
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                    value={formData.zoneId}
+                    onChange={(e) => handleInputChange('zoneId', e.target.value)}
+                    placeholder="Enter Zone ID"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Ward ID
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                    value={formData.wardId}
+                    onChange={(e) => handleInputChange('wardId', e.target.value)}
+                    placeholder="Enter Ward ID"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Area ID
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                    value={formData.areaId}
+                    onChange={(e) => handleInputChange('areaId', e.target.value)}
+                    placeholder="Enter Area ID"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Locality ID
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                    value={formData.localityId}
+                    onChange={(e) => handleInputChange('localityId', e.target.value)}
+                    placeholder="Enter Locality ID"
+                  />
+                </div>
+              </div>
+            </div>
             
             {/* Contact Information */}
             <div className="space-y-6">
-           
               <div className="grid gap-4">
                 <DetailItem label="Phone Number" value={propertyData.PhoneNumber} icon={Phone} />
                 <DetailItem label="Street Name" value={propertyData.StreetName} />
+                <DetailItem label="Ward Name" value={propertyData.WardName} />
+                <DetailItem label="Area Name" value={propertyData.AreaName} />
                 <DetailItem label="Locality Name" value={propertyData.LocalityName} />
               </div>
             </div>
 
             {/* Property Details */}
             <div className="space-y-6">
-     
               <div className="grid gap-4">
                 <DetailItem 
                   label="Total Build Area" 
                   value={`${propertyData.TotalBuildArea} sq.ft`} 
                 />
                 <DetailItem label="Usage Type" value={propertyData.UsageName} />
+                <DetailItem label="Door No" value={propertyData.DoorNo} />
               </div>
             </div>
           </div>
@@ -360,7 +359,7 @@ const VerificationPage = () => {
           </div>
         </DetailSection>
 
-        {/* Submit Button - Centered */}
+   ]{/* Submit Button - Centered */}
         <div className="flex justify-center mt-8 mb-8">
           <button
             onClick={handleSubmit}
@@ -371,8 +370,8 @@ const VerificationPage = () => {
           </button>
         </div>
       
-     {/* Success Notification Modal */}
-     {showSuccessNotification && (
+        {/* Success Notification Modal */}
+        {showSuccessNotification && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-lg w-96">
               <div className="flex items-center justify-between px-6 py-4 border-b">
