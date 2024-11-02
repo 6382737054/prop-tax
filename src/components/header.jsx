@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ChevronDown, UserCircle, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Menu, X, ChevronDown, UserCircle, LogOut, Home, ClipboardList } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({ setIsLoggedIn }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [userData, setUserData] = useState(null);
 
@@ -19,23 +19,20 @@ const Header = () => {
       if (authToken && storedUserData) {
         try {
           const parsedUserData = JSON.parse(storedUserData);
-          setIsLoggedIn(true);
           setUserData(parsedUserData);
         } catch (error) {
           console.error('Error parsing user data:', error);
-          handleLogout();
         }
       } else {
-        setIsLoggedIn(false);
         setUserData(null);
       }
     };
 
     checkLoginStatus();
 
-    // Listen for storage changes (in case of logout in another tab)
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // Listen for storage changes
+    window.addEventListener('storage', checkLoginStatus);
+    return () => window.removeEventListener('storage', checkLoginStatus);
   }, []);
 
   // Clock update effect
@@ -45,48 +42,6 @@ const Header = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const handleStorageChange = () => {
-    // Refresh the page after any storage change
-    window.location.reload();
-  };
-
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-  };
-
-  const handleLoginClick = () => {
-    navigate('/login');
-  };
-
-  const handleHomeClick = () => {
-    navigate('/home');
-  };
-
-  const handleSurveyClick = () => {
-    navigate('/filters');
-  };
-
-  const handleLogout = () => {
-    // Clear all auth-related items from localStorage
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
-    localStorage.removeItem('rememberedUser');
-    localStorage.removeItem('lastLoginTime');
-    
-    // Navigate to login page
-    navigate('/login');
-  };
-
-  const handleProfileClick = () => {
-    setUserDropdownOpen(false);
-    navigate('/profile');
-  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -99,6 +54,54 @@ const Header = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userDropdownOpen]);
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  };
+
+  const handleHomeClick = () => {
+    navigate('/home');
+    setIsMenuOpen(false);
+  };
+
+  const handleSurveyClick = () => {
+    navigate('/filters');
+    setIsMenuOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setUserDropdownOpen(false);
+    setIsMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    // Clear all auth-related items from localStorage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('rememberedUser');
+    localStorage.removeItem('sessionData');
+    localStorage.removeItem('lastLoginTime');
+    
+    // Update global auth state
+    setIsLoggedIn(false);
+    
+    // Close menus
+    setUserDropdownOpen(false);
+    setIsMenuOpen(false);
+    
+    // Navigate to login
+    navigate('/login', { replace: true });
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
   return (
     <header className="relative z-50">
@@ -118,67 +121,62 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Right Section: Navigation, Login/Profile, and Time */}
+          {/* Right Section: Navigation, Profile, and Time */}
           <div className="hidden md:flex items-center space-x-8">
             <nav className="flex items-center space-x-8">
               <button 
                 onClick={handleHomeClick}
-                className="text-white hover:text-blue-200 font-medium transition-colors"
+                className={`flex items-center space-x-2 text-white transition-colors ${
+                  isActive('/home') ? 'text-blue-200' : 'hover:text-blue-200'
+                }`}
               >
-                Home
-              </button>
-              <button 
-                onClick={handleSurveyClick}
-                className="text-white hover:text-blue-200 font-medium transition-colors"
-              >
-                Survey
+                <Home className="h-5 w-5" />
+                <span className="font-medium">Home</span>
               </button>
 
-              {!isLoggedIn ? (
+              <button 
+                onClick={handleSurveyClick}
+                className={`flex items-center space-x-2 text-white transition-colors ${
+                  isActive('/filters') ? 'text-blue-200' : 'hover:text-blue-200'
+                }`}
+              >
+                <ClipboardList className="h-5 w-5" />
+                <span className="font-medium">Survey</span>
+              </button>
+
+              <div className="relative user-dropdown">
                 <button 
-                  onClick={handleLoginClick}
-                  className="text-white hover:text-blue-200 font-medium transition-colors"
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center space-x-2 text-white hover:text-blue-200 font-medium"
                 >
-                  Login
+                  <UserCircle className="h-5 w-5" />
+                  <span>{userData?.name || 'User'}</span>
+                  <ChevronDown 
+                    className={`h-4 w-4 transform transition-transform duration-200 ${
+                      userDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
-              ) : (
-                <div className="relative user-dropdown">
-                  <button 
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center space-x-2 text-white hover:text-blue-200 font-medium"
-                  >
-                    <UserCircle className="h-5 w-5" />
-                    <span>{userData?.name || 'User'}</span>
-                    <ChevronDown 
-                      className={`h-4 w-4 transform transition-transform duration-200 ${
-                        userDropdownOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-                  
-                  {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden">
-                      <button 
-                        onClick={handleProfileClick}
-                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
-                      >
-                        <UserCircle className="h-4 w-4 mr-2" />
-                        Profile
-                      </button>
-                      <button 
-                        onClick={() => {
-                          handleLogout();
-                          navigate('/login');
-                        }}
-                        className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden">
+                    <button 
+                      onClick={handleProfileClick}
+                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                    >
+                      <UserCircle className="h-4 w-4 mr-2" />
+                      Profile
+                    </button>
+                    <button 
+                      onClick={handleLogout}
+                      className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </nav>
 
             <div className="flex items-center space-x-6 pl-8 border-l border-white/20">
@@ -202,7 +200,7 @@ const Header = () => {
               className="p-2 text-white hover:text-blue-200 transition-colors focus:outline-none"
               aria-label="Menu"
             >
-              <Menu className="h-7 w-7" />
+              {isMenuOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
             </button>
           </div>
         </div>
@@ -256,64 +254,49 @@ const Header = () => {
           {/* Navigation Links */}
           <div className="p-4 space-y-2">
             <button 
-              onClick={() => {
-                handleHomeClick();
-                setIsMenuOpen(false);
-              }}
-              className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+              onClick={handleHomeClick}
+              className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
+                isActive('/home') 
+                  ? 'bg-blue-50 text-blue-600' 
+                  : 'text-gray-700 hover:bg-blue-50'
+              }`}
             >
+              <Home className="h-5 w-5 mr-3" />
               <span className="font-medium">Home</span>
             </button>
             
             <button 
-              onClick={() => {
-                handleSurveyClick();
-                setIsMenuOpen(false);
-              }}
-              className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+              onClick={handleSurveyClick}
+              className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
+                isActive('/filters') 
+                  ? 'bg-blue-50 text-blue-600' 
+                  : 'text-gray-700 hover:bg-blue-50'
+              }`}
             >
+              <ClipboardList className="h-5 w-5 mr-3" />
               <span className="font-medium">Survey</span>
             </button>
 
-            {!isLoggedIn ? (
+            <div className="border-t border-gray-200 my-4 pt-4">
+              <div className="px-4 text-sm text-gray-500 mb-2">
+                Logged in as {userData?.name || 'User'}
+              </div>
               <button 
-                onClick={() => {
-                  handleLoginClick();
-                  setIsMenuOpen(false);
-                }}
+                onClick={handleProfileClick}
                 className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
               >
                 <UserCircle className="h-5 w-5 mr-3 text-gray-500" />
-                <span className="font-medium">Login</span>
+                <span className="font-medium">Profile</span>
               </button>
-            ) : (
-              <div className="border-t border-gray-200 my-4 pt-4">
-                <div className="px-4 text-sm text-gray-500 mb-2">
-                  Logged in as {userData?.name || 'User'}
-                </div>
-                <button 
-                  onClick={() => {
-                    navigate('/profile');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  <UserCircle className="h-5 w-5 mr-3 text-gray-500" />
-                  <span className="font-medium">Profile</span>
-                </button>
-                
-                <button 
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2"
-                >
-                  <LogOut className="h-5 w-5 mr-3" />
-                  <span className="font-medium">Logout</span>
-                </button>
-              </div>
-            )}
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2"
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                <span className="font-medium">Logout</span>
+              </button>
+            </div>
           </div>
 
           {/* Footer */}
