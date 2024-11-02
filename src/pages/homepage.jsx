@@ -1,33 +1,42 @@
 import React from 'react';
-import { ClipboardCheck, ClipboardList, Calendar, Clock } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Calendar, Clock, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import surveyData from './surveyData.json';
 
 const HomePage = () => {
+  // Calculate total surveys
+  const totalSurveys = surveyData.stats.totalCompleted + surveyData.stats.totalPending;
+  
   const statsData = [
     {
-      title: "Total Completed Surveys",
-      value: surveyData.stats.totalCompleted.toLocaleString(),
-      icon: ClipboardCheck,
-      color: "blue"
-    },
-    {
-      title: "Total Pending Surveys",
-      value: surveyData.stats.totalPending.toLocaleString(),
-      icon: ClipboardList,
-      color: "red"
+      title: "Total Surveys",
+      value: totalSurveys.toLocaleString(),
+      icon: CheckCircle,
+      color: "purple",
+      subStats: [
+        {
+          label: "Completed",
+          value: surveyData.stats.totalCompleted.toLocaleString(),
+          percentage: ((surveyData.stats.totalCompleted / totalSurveys) * 100).toFixed(1)
+        },
+        {
+          label: "Pending",
+          value: surveyData.stats.totalPending.toLocaleString(),
+          percentage: ((surveyData.stats.totalPending / totalSurveys) * 100).toFixed(1)
+        }
+      ]
     },
     {
       title: "Monthly Survey Count",
       value: surveyData.stats.monthlySurveys.toLocaleString(),
       icon: Calendar,
-      color: "green"
+      color: "blue"
     },
     {
       title: "Last 7 Days Surveys",
       value: surveyData.stats.lastSevenDays.toLocaleString(),
       icon: Clock,
-      color: "orange"
+      color: "cyan"
     }
   ];
 
@@ -36,32 +45,32 @@ const HomePage = () => {
       blue: {
         bg: "bg-blue-600",
         light: "bg-blue-50",
+        text: "text-blue-600"
       },
-      red: {
-        bg: "bg-red-600",
-        light: "bg-red-50",
+      purple: {
+        bg: "bg-purple-600",
+        light: "bg-purple-50",
+        text: "text-purple-600"
       },
-      green: {
-        bg: "bg-green-600",
-        light: "bg-green-50",
-      },
-      orange: {
-        bg: "bg-orange-600",
-        light: "bg-orange-50",
+      cyan: {
+        bg: "bg-cyan-600",
+        light: "bg-cyan-50",
+        text: "text-cyan-600"
       }
     };
     return classes[color];
   };
 
-  const barColors = {
-    Monday: '#ff0000',    // Red
-    Tuesday: '#ff7f00',   // Orange
-    Wednesday: '#ffff00', // Yellow
-    Thursday: '#00ff00',  // Green
-    Friday: '#0000ff',    // Blue
-    Saturday: '#4B0082',  // Indigo
-    Sunday: '#8B00FF'     // Violet
-  };
+  // Pastel blue colors for the bar chart
+  const barColors = [
+    '#E3F2FD', // Lightest blue
+    '#BBDEFB',
+    '#90CAF9',
+    '#64B5F6',
+    '#42A5F5',
+    '#2196F3',
+    '#1E88E5'  // Darkest blue
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,7 +86,7 @@ const HomePage = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
           {statsData.map((stat, index) => {
             const colorClasses = getColorClasses(stat.color);
             const Icon = stat.icon;
@@ -96,6 +105,28 @@ const HomePage = () => {
                   <p className="mt-4 text-sm font-medium text-gray-600">
                     {stat.title}
                   </p>
+                  
+                  {/* Sub-stats for Total Surveys */}
+                  {stat.subStats && (
+                    <div className="mt-4 space-y-3">
+                      {stat.subStats.map((subStat, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {idx === 0 ? (
+                              <ClipboardCheck className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <ClipboardList className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className="text-sm text-gray-600">{subStat.label}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-medium text-gray-700">{subStat.value}</span>
+                            <span className="ml-2 text-xs text-gray-500">({subStat.percentage}%)</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -137,7 +168,7 @@ const HomePage = () => {
                   <Tooltip />
                   <Bar dataKey="count" fill="#8884d8">
                     {surveyData.dailyData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={barColors[entry.day]} />
+                      <Cell key={`cell-${index}`} fill={barColors[index]} />
                     ))}
                   </Bar>
                 </BarChart>
