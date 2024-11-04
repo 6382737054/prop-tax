@@ -1,50 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  MapPin, Edit2, CheckCircle, AlertCircle, X, BuildingIcon, Phone, Home
+  MapPin, 
+  Building, 
+  Home, 
+  ChevronDown,
+  Search,
+  AlertCircle,
+  Table,
+  Phone,
+  User,
+  ArrowRight
 } from 'lucide-react';
 import filterData from './filterData.json';
 
-// Reusable Input Components
-const InputField = ({ label, id, error, icon: Icon, ...props }) => (
-  <div className="space-y-2">
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700">
-      {label}
-    </label>
-    <div className="relative">
-      {Icon && (
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Icon className="h-5 w-5 text-gray-400" />
-        </div>
-      )}
-      <input
-        id={id}
-        className={`w-full ${Icon ? 'pl-10' : 'pl-4'} py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-blue-400 shadow-sm`}
-        {...props}
-      />
-    </div>
-    {error && (
-      <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
-        <AlertCircle size={14} />
-        <span>{error}</span>
-      </div>
-    )}
-  </div>
-);
-
+// Enhanced SelectField with better styling and animations
 const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
-  <div className="space-y-2">
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+  <div className="space-y-2 relative group">
+    <label htmlFor={id} className="block text-sm font-semibold text-gray-700 mb-1.5">
       {label}
     </label>
     <div className="relative">
       {Icon && (
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Icon className="h-5 w-5 text-gray-400" />
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none group-hover:text-blue-500 transition-colors">
+          <Icon className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
         </div>
       )}
       <select
         id={id}
-        className={`w-full ${Icon ? 'pl-10' : 'pl-4'} py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-blue-400 shadow-sm appearance-none`}
+        className={`w-full ${Icon ? 'pl-10' : 'pl-4'} pr-10 py-3.5 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all duration-200 hover:border-blue-300 shadow-sm appearance-none text-gray-700 font-medium disabled:bg-gray-50 disabled:cursor-not-allowed`}
         {...props}
       >
         <option value="">Select {label}</option>
@@ -55,181 +39,101 @@ const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
         ))}
       </select>
       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-        </svg>
+        <ChevronDown className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
       </div>
     </div>
     {error && (
-      <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
+      <div className="absolute -bottom-6 left-0 flex items-center gap-2 text-red-500 text-sm animate-fadeIn">
         <AlertCircle size={14} />
-        <span>{error}</span>
+        <span className="font-medium">{error}</span>
       </div>
     )}
   </div>
 );
 
-const SuccessPopup = ({ onClose }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-    <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 relative shadow-2xl transform transition-all duration-300 scale-100 animate-scaleIn">
-      <button 
-        onClick={onClose}
-        className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
-      >
-        <X size={20} />
-      </button>
-      <div className="text-center">
-        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 animate-bounce">
-          <CheckCircle className="h-6 w-6 text-green-600" />
-        </div>
-        <h3 className="mt-4 text-xl font-semibold text-gray-900">Success!</h3>
-        <p className="mt-2 text-sm text-gray-600">Your changes have been saved successfully.</p>
-        <button
-          onClick={onClose}
-          className="mt-6 w-full inline-flex justify-center px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 font-medium"
-        >
-          Close
-        </button>
+// Enhanced ResultsTable with better styling and animations
+const ResultsTable = ({ results }) => {
+  const navigate = useNavigate();
+
+  if (!results || results.length === 0) return (
+    <div className="mt-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 text-center border border-gray-200 shadow-sm">
+      <div className="max-w-md mx-auto space-y-4">
+        <Search className="h-12 w-12 text-gray-400 mx-auto" />
+        <p className="text-gray-600 font-medium">No results found. Please try different search criteria.</p>
       </div>
     </div>
-  </div>
-);
-
-const WardDataTable = ({ data, onEdit }) => (
-  <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            Door No
-          </th>
-          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            Owner Name
-          </th>
-          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            Street Name
-          </th>
-          <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {data.map((row) => (
-          <tr key={row.id} className="hover:bg-gray-50 transition-colors duration-150">
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{row.NewDoorNo}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.Ownername}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.StreetName}</td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <button
-                onClick={() => onEdit(row)}
-                className="text-blue-600 hover:text-blue-800 flex items-center gap-1.5 group transition-colors duration-150"
-              >
-                <Edit2 size={16} className="group-hover:scale-110 transition-transform duration-150" />
-                <span className="text-sm font-medium">Edit</span>
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
-
-const EditForm = ({ selectedRow, onSubmit }) => {
-  const [editData, setEditData] = useState({
-    ownerName: selectedRow?.Ownername || '',
-    phoneNumber: '',
-    buildingUsage: '',
-    buildingStructure: ''
-  });
-
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  const buildingUsageOptions = [
-    { value: 'Residential', label: 'Residential' },
-    { value: 'Commercial', label: 'Commercial' },
-    { value: 'Educational', label: 'Educational' },
-    { value: 'Government', label: 'Government' }
-  ];
-
-  const buildingStructureOptions = [
-    { value: 'RCC', label: 'RCC Sheet' },
-    { value: 'THATCHED', label: 'Thatched' },
-    { value: 'AC-SHEET', label: 'AC Sheet' }
-  ];
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setShowSuccess(true);
-    onSubmit(editData);
-  };
+  );
 
   return (
-    <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-100">
-      <div className="p-6 border-b border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Edit2 className="text-blue-500" size={20} />
-          Edit Details
-        </h3>
+    <div className="mt-8 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Table className="h-6 w-6 text-blue-500" />
+            <h3 className="text-lg font-semibold text-gray-900">Search Results</h3>
+          </div>
+          <span className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium">
+            {results.length} Results Found
+          </span>
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        <InputField
-          label="Confirm Owner Name"
-          id="ownerName"
-          value={editData.ownerName}
-          disabled
-          icon={Home}
-        />
-        <InputField
-          label="Phone Number"
-          id="phoneNumber"
-          type="tel"
-          value={editData.phoneNumber}
-          onChange={(e) => setEditData(prev => ({...prev, phoneNumber: e.target.value}))}
-          required
-          icon={Phone}
-        />
-        <SelectField
-          label="Building Usage"
-          id="buildingUsage"
-          value={editData.buildingUsage}
-          onChange={(e) => setEditData(prev => ({...prev, buildingUsage: e.target.value}))}
-          options={buildingUsageOptions}
-          required
-          icon={BuildingIcon}
-        />
-        <SelectField
-          label="Building Structure"
-          id="buildingStructure"
-          value={editData.buildingStructure}
-          onChange={(e) => setEditData(prev => ({...prev, buildingStructure: e.target.value}))}
-          options={buildingStructureOptions}
-          required
-          icon={Home}
-        />
-        <button
-          type="submit"
-          className="w-full py-3 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200 transform hover:translate-y-[-1px] hover:shadow-lg font-medium flex items-center justify-center gap-2"
-        >
-          <CheckCircle size={20} />
-          Update Details
-        </button>
-      </form>
-      
-      {showSuccess && (
-        <SuccessPopup 
-          onClose={() => {
-            setShowSuccess(false);
-            setEditData({
-              ownerName: '',
-              phoneNumber: '',
-              buildingUsage: '',
-              buildingStructure: ''
-            });
-          }}
-        />
-      )}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                S.No
+              </th>
+              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                Door Number
+              </th>
+              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                Owner Name
+              </th>
+              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                Phone Number
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {results.map((item, index) => (
+              <tr 
+                key={index} 
+                className="hover:bg-blue-50 transition-colors cursor-pointer"
+                onClick={() => navigate(`/verify/${item.id}`)}
+              >
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {index + 1}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <Home className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium text-blue-600 hover:text-blue-800">
+                      {item.DoorNo}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.Ownername}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.PhoneNumber}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -237,38 +141,92 @@ const EditForm = ({ selectedRow, onSubmit }) => {
 const SurveyForm = () => {
   const [formData, setFormData] = useState({
     wardName: '',
-    streetName: '',
-    localityName: ''
+    areaName: '',
+    localityName: '',
+    streetName: ''
   });
   const [formErrors, setFormErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedRow, setSelectedRow] = useState(null);
-  const [filteredStreets, setFilteredStreets] = useState([]);
   const [filteredLocalities, setFilteredLocalities] = useState([]);
+  const [filteredStreets, setFilteredStreets] = useState([]);
+  const [userWards, setUserWards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState([]);
+
+  // Keep all existing useEffect hooks and handlers exactly the same
+  useEffect(() => {
+    const fetchUserWards = async () => {
+      try {
+        const wards = [...new Set(filterData.data.map(item => item.WardName))];
+        const formattedWards = wards.map(ward => ({
+          value: ward,
+          label: ward
+        }));
+        setUserWards(formattedWards);
+      } catch (error) {
+        console.error('Error loading ward data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUserWards();
+  }, []);
 
   useEffect(() => {
     if (formData.wardName) {
-      const wardData = filterData.data.filter(item => item.WardName === formData.wardName);
+      const wardData = filterData.data.filter(item => 
+        item.WardName.toLowerCase() === formData.wardName.toLowerCase()
+      );
       
-      const streets = [...new Set(wardData.map(item => item.StreetName))].map(street => ({
-        value: street,
-        label: street
-      }));
-      setFilteredStreets(streets);
+      const areas = [...new Set(wardData.map(item => item.AreaName))]
+        .filter(Boolean)
+        .map(area => ({
+          value: area,
+          label: area
+        }));
+      setFilteredData(areas);
 
-      const localities = [...new Set(wardData.map(item => item.LocalityName))].map(locality => ({
-        value: locality,
-        label: locality
-      }));
-      setFilteredLocalities(localities);
+      setFilteredLocalities([]);
+      setFilteredStreets([]);
     }
   }, [formData.wardName]);
 
-  const wardOptions = [...new Set(filterData.data.map(item => item.WardName))].map(ward => ({
-    value: ward,
-    label: ward
-  }));
+  useEffect(() => {
+    if (formData.wardName && formData.areaName) {
+      const areaData = filterData.data.filter(item => 
+        item.WardName.toLowerCase() === formData.wardName.toLowerCase() &&
+        item.AreaName.toLowerCase() === formData.areaName.toLowerCase()
+      );
+
+      const localities = [...new Set(areaData.map(item => item.LocalityName))]
+        .filter(Boolean)
+        .map(locality => ({
+          value: locality,
+          label: locality
+        }));
+      setFilteredLocalities(localities);
+
+      setFilteredStreets([]);
+    }
+  }, [formData.wardName, formData.areaName]);
+
+  useEffect(() => {
+    if (formData.wardName && formData.areaName && formData.localityName) {
+      const localityData = filterData.data.filter(item => 
+        item.WardName.toLowerCase() === formData.wardName.toLowerCase() &&
+        item.AreaName.toLowerCase() === formData.areaName.toLowerCase() &&
+        item.LocalityName.toLowerCase() === formData.localityName.toLowerCase()
+      );
+
+      const streets = [...new Set(localityData.map(item => item.StreetName))]
+        .filter(Boolean)
+        .map(street => ({
+          value: street,
+          label: street
+        }));
+      setFilteredStreets(streets);
+    }
+  }, [formData.wardName, formData.areaName, formData.localityName]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -280,82 +238,90 @@ const SurveyForm = () => {
       ...prev,
       [name]: ''
     }));
+
+    if (name === 'wardName') {
+      setFormData(prev => ({
+        ...prev,
+        areaName: '',
+        localityName: '',
+        streetName: '',
+        [name]: value
+      }));
+    } else if (name === 'areaName') {
+      setFormData(prev => ({
+        ...prev,
+        localityName: '',
+        streetName: '',
+        [name]: value
+      }));
+    } else if (name === 'localityName') {
+      setFormData(prev => ({
+        ...prev,
+        streetName: '',
+        [name]: value
+      }));
+    }
+    setSearchResults([]);
   };
 
   const validateForm = () => {
     const errors = {};
     if (!formData.wardName) errors.wardName = 'Ward name is required';
-    if (!formData.streetName) errors.streetName = 'Street name is required';
+    if (!formData.areaName) errors.areaName = 'Area name is required';
     if (!formData.localityName) errors.localityName = 'Locality name is required';
+    if (!formData.streetName) errors.streetName = 'Street name is required';
     return errors;
   };
 
   const handleSubmit = () => {
     const errors = validateForm();
     if (Object.keys(errors).length === 0) {
-      const filtered = filterData.data.filter(item => 
-        item.WardName === formData.wardName &&
-        item.StreetName === formData.streetName &&
-        item.LocalityName === formData.localityName
+      const results = filterData.data.filter(item => 
+        item.WardName.toLowerCase().trim() === formData.wardName.toLowerCase().trim() &&
+        item.AreaName.toLowerCase().trim() === formData.areaName.toLowerCase().trim() &&
+        item.LocalityName.toLowerCase().trim() === formData.localityName.toLowerCase().trim() &&
+        item.StreetName.toLowerCase().trim() === formData.streetName.toLowerCase().trim()
       );
-      setFilteredData(filtered);
-      setSubmitted(true);
-      setSelectedRow(null);
+      setSearchResults(results);
     } else {
       setFormErrors(errors);
     }
   };
 
-  const handleEdit = (row) => {
-    setSelectedRow(row);
-  };
-
-  const handleUpdateSubmit = (editData) => {
-    console.log('Updated Data:', {
-      ...selectedRow,
-      ...editData
-    });
-    setFormData({
-      wardName: '',
-      streetName: '',
-      localityName: ''
-    });
-    setFilteredData([]);
-    setSubmitted(false);
-    setSelectedRow(null);
-  };
-
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <MapPin className="text-blue-500 h-6 w-6" />
-            </div>
-            <h2 className="text-2xl font-semibold text-gray-800">Location Details</h2>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Enhanced Search Form */}
+        <div className="bg-white shadow-xl rounded-2xl p-8 mb-8 border border-gray-100">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <Search className="h-6 w-6 text-blue-500" />
+              Property Search
+            </h2>
+            <p className="text-gray-500 mt-2">Please fill in the details to search for properties</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <SelectField
               label="Ward Name"
               id="wardName"
               name="wardName"
               value={formData.wardName}
               onChange={handleInputChange}
-              options={wardOptions}
+              options={userWards}
               error={formErrors.wardName}
               icon={Home}
             />
-         <SelectField
-              label="Street Name"
-              id="streetName"
-              name="streetName"
-              value={formData.streetName}
+            <SelectField
+              label="Area Name"
+              id="areaName"
+              name="areaName"
+              value={formData.areaName}
               onChange={handleInputChange}
-              options={filteredStreets}
-              error={formErrors.streetName}
+              options={filteredData}
+              error={formErrors.areaName}
               disabled={!formData.wardName}
-              icon={MapPin}
+              icon={Building}
             />
             <SelectField
               label="Locality Name"
@@ -365,74 +331,40 @@ const SurveyForm = () => {
               onChange={handleInputChange}
               options={filteredLocalities}
               error={formErrors.localityName}
-              disabled={!formData.wardName}
+              disabled={!formData.areaName}
+              icon={MapPin}
+            />
+            <SelectField
+              label="Street Name"
+              id="streetName"
+              name="streetName"
+              value={formData.streetName}
+              onChange={handleInputChange}
+              options={filteredStreets}
+              error={formErrors.streetName}
+              disabled={!formData.localityName}
               icon={MapPin}
             />
           </div>
 
-          <div className="flex justify-end mt-8">
+          <div className="mt-8 flex justify-end">
             <button
               onClick={handleSubmit}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 transform hover:translate-y-[-1px] hover:shadow-lg font-medium"
+              disabled={loading}
+              className="px-8 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transform font-semibold"
             >
-              <span>Submit</span>
-              <CheckCircle size={20} />
+              <Search className="h-5 w-5" />
+              Search Properties
+              <ArrowRight className="h-5 w-5 ml-1" />
             </button>
           </div>
         </div>
 
-        {submitted && (
-          <div className="border-t border-gray-100">
-            <div className="p-8">
-              <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2 text-blue-700">
-                  <AlertCircle size={20} />
-                  <span className="font-medium">Showing results for selected location</span>
-                </div>
-              </div>
-              
-              <WardDataTable data={filteredData} onEdit={handleEdit} />
-              
-              {selectedRow && (
-                <div className="mt-8">
-                  <EditForm 
-                    selectedRow={selectedRow}
-                    onSubmit={handleUpdateSubmit}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <ResultsTable results={searchResults} />
       </div>
-      
-      {/* Add some spacing at the bottom */}
-      <div className="h-12" />
     </div>
   );
 };
 
-// Add some global styles
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes scaleIn {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-scaleIn {
-    animation: scaleIn 0.2s ease-out;
-  }
-`;
-document.head.appendChild(style);
-
 export default SurveyForm;
+

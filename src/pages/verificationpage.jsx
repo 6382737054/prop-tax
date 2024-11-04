@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin } from 'lucide-react';
-import filterData from './filterData.json';
+import api from '../apiConfig/api';
 
-// DetailSection Component with enhanced styling
+// Keep DetailSection Component exactly the same
 const DetailSection = ({ title, children }) => (
   <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 mb-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
     <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
@@ -16,7 +16,7 @@ const DetailSection = ({ title, children }) => (
   </div>
 );
 
-// DetailItem Component with enhanced styling
+// Keep DetailItem Component exactly the same
 const DetailItem = ({ label, value, icon: Icon }) => (
   <div className="p-5 bg-white rounded-xl border border-gray-200 hover:border-blue-500 transition-all duration-300 group">
     <div className="flex items-center gap-3 mb-2">
@@ -27,7 +27,7 @@ const DetailItem = ({ label, value, icon: Icon }) => (
   </div>
 );
 
-// Enhanced Floor Details Form Component
+// Keep FloorDetailsForm Component exactly the same
 const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
   const buildingUsageOptions = [
     { value: "commercial", label: "Commercial" },
@@ -101,6 +101,7 @@ const VerificationPage = () => {
   const [buildingStructure, setBuildingStructure] = useState('');
   const [totalFloors, setTotalFloors] = useState(0);
   const [floorDetails, setFloorDetails] = useState({});
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     zoneId: '',
     wardId: '',
@@ -109,18 +110,46 @@ const VerificationPage = () => {
   });
 
   useEffect(() => {
-    const property = filterData.data.find(item => item.id === parseInt(id));
-    if (property) {
-      setPropertyData(property);
-      setFormData({
-        zoneId: property.ZoneID,
-        wardId: property.WardID,
-        areaId: property.AreaID,
-        localityId: property.LocalityID,
-      });
-      setMobileNumber(property.PhoneNumber);
-      setTotalArea(property.TotalBuildArea);
-    }
+    const fetchPropertyDetails = async () => {
+      try {
+        setLoading(true);
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const token = userData?.authToken;
+        
+        if (!token) {
+          console.error('No auth token found');
+          return;
+        }
+
+        const response = await api.get(`/api/v1/asset/detail/${id}`, {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const propertyDetails = response.data.data;
+        
+        if (propertyDetails) {
+          setPropertyData(propertyDetails);
+          setFormData({
+            zoneId: propertyDetails.zone_id,
+            wardId: propertyDetails.ward_id,
+            areaId: propertyDetails.area_id,
+            localityId: propertyDetails.loc_id,
+          });
+          setMobileNumber(propertyDetails.mobile_number || '');
+          setTotalArea(propertyDetails.build_area || '');
+          // Set other initial states based on API response
+        }
+      } catch (error) {
+        console.error('Error fetching property details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPropertyDetails();
   }, [id]);
 
   const handleBack = () => navigate(-1);
@@ -164,7 +193,7 @@ const VerificationPage = () => {
 
   const floorNumbers = Array.from({ length: parseInt(totalFloors) + 1 }, (_, i) => i);
 
-  if (!propertyData) {
+  if (loading || !propertyData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent shadow-lg"></div>
@@ -174,7 +203,7 @@ const VerificationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Enhanced Header */}
+      {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10 shadow-md backdrop-blur-lg bg-white/90">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -195,13 +224,13 @@ const VerificationPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Enhanced Owner Verification */}
+        {/* Owner Verification Section */}
         <DetailSection title="Owner Verification">
           <div className="flex items-center gap-6 mb-6 p-4 bg-blue-50 rounded-xl">
             <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center">
               <User className="h-8 w-8 text-white" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{propertyData.Ownername}</p>
+            <p className="text-2xl font-bold text-gray-900">{propertyData.owner}</p>
           </div>
           <label className="flex items-center gap-4 cursor-pointer p-4 hover:bg-gray-50 rounded-xl transition-colors">
             <input
@@ -214,23 +243,28 @@ const VerificationPage = () => {
           </label>
         </DetailSection>
 
-        {/* Enhanced Property Information */}
+        {/* Property Information Section */}
         <DetailSection title="Property Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Location Details */}
             <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
               <div className="grid gap-6">
-                {['zoneId', 'wardId', 'areaId', 'localityId'].map((field) => (
-                  <div key={field} className="space-y-2">
+                {[
+                  { key: 'zoneId', label: 'Zone ID', value: propertyData.zone_id },
+                  { key: 'wardId', label: 'Ward ID', value: propertyData.ward_id },
+                  { key: 'areaId', label: 'Area ID', value: propertyData.area_id },
+                  { key: 'localityId', label: 'Locality ID', value: propertyData.loc_id }
+                ].map((field) => (
+                  <div key={field.key} className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      {field.charAt(0).toUpperCase() + field.slice(1).replace('Id', ' ID')}
+                      {field.label}
                     </label>
                     <input
                       type="text"
                       className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 transition-all duration-300"
-                      value={formData[field]}
-                      onChange={(e) => handleInputChange(field, e.target.value)}
-                      placeholder={`Enter ${field.replace('Id', ' ID')}`}
+                      value={field.value}
+                      onChange={(e) => handleInputChange(field.key, e.target.value)}
+                      placeholder={`Enter ${field.label}`}
                     />
                   </div>
                 ))}
@@ -240,11 +274,31 @@ const VerificationPage = () => {
             {/* Contact Information */}
             <div className="space-y-6">
               <div className="grid gap-4">
-                <DetailItem label="Phone Number" value={propertyData.PhoneNumber} icon={Phone} />
-                <DetailItem label="Street Name" value={propertyData.StreetName} icon={MapPin} />
-                <DetailItem label="Ward Name" value={propertyData.WardName} icon={Building} />
-                <DetailItem label="Area Name" value={propertyData.AreaName} icon={MapPin} />
-                <DetailItem label="Locality Name" value={propertyData.LocalityName} icon={MapPin} />
+                <DetailItem 
+                  label="Zone Name" 
+                  value={propertyData.zone_name} 
+                  icon={MapPin} 
+                />
+                <DetailItem 
+                  label="Ward Name" 
+                  value={propertyData.ward_name} 
+                  icon={Building} 
+                />
+                <DetailItem 
+                  label="Area Name" 
+                  value={propertyData.area_name} 
+                  icon={MapPin} 
+                />
+                <DetailItem 
+                  label="Street Name" 
+                  value={propertyData.street_name} 
+                  icon={MapPin} 
+                />
+                <DetailItem 
+                  label="Locality Name" 
+                  value={propertyData.loc_name} 
+                  icon={MapPin} 
+                />
               </div>
             </div>
 
@@ -252,94 +306,103 @@ const VerificationPage = () => {
             <div className="space-y-6">
               <div className="grid gap-4">
                 <DetailItem 
-                  label="Total Build Area" 
-                  value={`${propertyData.TotalBuildArea} sq.ft`}
+                  label="Assessment Ref" 
+                  value={propertyData.asst_ref}
                   icon={LayoutDashboard}
                 />
-                <DetailItem label="Usage Type" value={propertyData.UsageName} icon={Building} />
-                <DetailItem label="Door No" value={propertyData.DoorNo} icon={Building} />
+                <DetailItem 
+                  label="Door Number" 
+                  value={propertyData.new_door} 
+                  icon={Building} 
+                />
+                <DetailItem 
+                  label="Usage Type" 
+                  value={propertyData.usage_type} 
+                  icon={Building} 
+                />
+                <DetailItem 
+                  label="Building Area" 
+                  value={`${propertyData.build_area} sq.ft`} 
+                  icon={LayoutDashboard} 
+                />
               </div>
             </div>
           </div>
         </DetailSection>
 
+       {/* Additional Property Details Section */}
+       <DetailSection title="Additional Property Details">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                label: "Mobile Number",
+                type: "tel",
+                value: mobileNumber,
+                onChange: setMobileNumber,
+              },
+              {
+                label: "Total Area (sq ft)",
+                type: "number",
+                value: totalArea,
+                onChange: setTotalArea,
+              },
+              {
+                label: "Assessment ID",
+                type: "text",
+                value: propertyData.asst_id,
+                readOnly: true,
+              }
+            ].map((field) => (
+              <div key={field.label} className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  className={`w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    field.readOnly ? 'bg-gray-50' : ''
+                  }`}
+                  value={field.value}
+                  onChange={field.onChange ? (e) => field.onChange(e.target.value) : undefined}
+                  readOnly={field.readOnly}
+                />
+              </div>
+            ))}
 
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Building Structure
+              </label>
+              <select
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                value={buildingStructure}
+                onChange={(e) => setBuildingStructure(e.target.value)}
+              >
+                <option value="">Select Type</option>
+                <option value="ac">AC Sheet</option>
+                <option value="tatched">Tatched</option>
+                <option value="rcc">RCC Sheet</option>
+              </select>
+            </div>
 
-{/* Only this section is modified, everything else stays exactly the same */}
-<DetailSection title="Additional Property Details">
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-    {[
-      {
-        label: "Mobile Number",
-        type: "tel",
-        value: mobileNumber,
-        onChange: setMobileNumber,
-      },
-      {
-        label: "Total Area (sq ft)",
-        type: "number",
-        value: totalArea,
-        onChange: setTotalArea,
-      },
-      {
-        label: "Assessment ID",
-        type: "text",
-        value: propertyData.AssesmentID,
-        readOnly: true,
-      }
-    ].map((field) => (
-      <div key={field.label} className="space-y-3">
-        <label className="block text-sm font-semibold text-gray-700">
-          {field.label}
-        </label>
-        <input
-          type={field.type}
-          className={`w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
-            field.readOnly ? 'bg-gray-50' : ''
-          }`}
-          value={field.value}
-          onChange={field.onChange ? (e) => field.onChange(e.target.value) : undefined}
-          readOnly={field.readOnly}
-        />
-      </div>
-    ))}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Total Number of Floors
+              </label>
+              <select
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                value={totalFloors}
+                onChange={(e) => setTotalFloors(e.target.value)}
+              >
+                {Array.from({ length: 11 }, (_, i) => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </DetailSection>
 
-    <div className="space-y-3">
-      <label className="block text-sm font-semibold text-gray-700">
-        Building Structure
-      </label>
-      <select
-        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-        value={buildingStructure}
-        onChange={(e) => setBuildingStructure(e.target.value)}
-      >
-        <option value="">Select Type</option>
-        <option value="ac">AC Sheet</option>
-        <option value="tatched">Tatched</option>
-        <option value="rcc">RCC Sheet</option>
-      </select>
-    </div>
-
-    <div className="space-y-3">
-      <label className="block text-sm font-semibold text-gray-700">
-        Total Number of Floors
-      </label>
-      <select
-        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-        value={totalFloors}
-        onChange={(e) => setTotalFloors(e.target.value)}
-      >
-        {Array.from({ length: 11 }, (_, i) => (
-          <option key={i} value={i}>{i}</option>
-        ))}
-      </select>
-    </div>
-  </div>
-</DetailSection>
-
-
-
-        {/* Floor Details */}
+        {/* Floor Details Section */}
         <DetailSection title="Floor-wise Details">
           <div className="grid grid-cols-1 gap-8">
             {floorNumbers.map((floorNumber) => (
@@ -353,7 +416,7 @@ const VerificationPage = () => {
           </div>
         </DetailSection>
 
-        {/* Enhanced Submit Button */}
+        {/* Submit Button */}
         <div className="flex justify-center mt-12 mb-12">
           <button
             onClick={handleSubmit}
@@ -363,8 +426,8 @@ const VerificationPage = () => {
             Submit Verification
           </button>
         </div>
-      
-        {/* Enhanced Success Notification Modal */}
+
+        {/* Success Notification Modal */}
         {showSuccessNotification && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-sm animate-fadeIn">
             <div className="bg-white rounded-2xl shadow-2xl w-96 transform transition-all duration-300 animate-scaleIn">
@@ -429,4 +492,3 @@ const VerificationPage = () => {
 };
 
 export default VerificationPage;
-

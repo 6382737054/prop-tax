@@ -87,7 +87,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setLoading(true);
 
     try {
-      const response = await api.post('/login', {
+      const response = await api.post('api/v1/login', {
         username: formData.username,
         password: formData.password
       });
