@@ -14,6 +14,7 @@ import {
 import api from '../apiConfig/api';
 import { Link } from 'react-router-dom';
 
+// SelectField component remains the same
 const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
   <div className="space-y-2 relative group">
     <label htmlFor={id} className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -51,6 +52,7 @@ const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
 );
 
 const SurveyForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ward_id: '',
     area_id: '',
@@ -68,252 +70,223 @@ const SurveyForm = () => {
   const [userOrgName, setUserOrgName] = useState('');
 
   useEffect(() => {
-    const fetchUserDataAndWards = async () => {
-      try {
-        setLoading(true);
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        
-        if (!userData) {
-          console.error('No user data found');
-          return;
-        }
-
-        const orgName = userData?.data?.resp?.org;
-        setUserOrgName(orgName);
-
-        const userWards = userData?.data?.resp?.wards || [];
-        if (Array.isArray(userWards)) {
-          const formattedWards = userWards.map(ward => ({
-            value: ward.ward_id,
-            label: ward.ward_name
-          }));
-          setUserWards(formattedWards);
-        }
-      } catch (error) {
-        console.error('Error processing user data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUserDataAndWards();
   }, []);
 
-  useEffect(() => {
-    const fetchAreas = async () => {
-      let token = null;
-      try {
-        setLoading(true);
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        token = userData?.authToken;
-        
-        if (!token) {
-          console.error('No auth token found');
-          return;
-        }
-
-        const orgName = userData?.data?.resp?.org;
-
-        if (orgName && formData.ward_id) {
-          const areasResponse = await api.get(`api/v1/master/${orgName}/${formData.ward_id}`, {
-            headers: {
-              'Authorization': `${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (areasResponse.data && Array.isArray(areasResponse.data.data)) {
-            const formattedAreas = areasResponse.data.data.map(area => ({
-              value: area.area_id,
-              label: area.area_name
-            }));
-            setUserAreas(formattedAreas);
-          }
-        }
-      } catch (error) {
-        console.error('API Error:', error);
-      } finally {
-        setLoading(false);
+  const fetchUserDataAndWards = async () => {
+    try {
+      setLoading(true);
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      
+      if (!userData) {
+        console.error('No user data found');
+        return;
       }
-    };
 
-    fetchAreas();
-  }, [formData.ward_id]);
+      const orgName = userData?.data?.resp?.org;
+      setUserOrgName(orgName);
 
-  useEffect(() => {
-    const fetchLocalities = async () => {
-      let token = null;
-      try {
-        setLoading(true);
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        token = userData?.authToken;
-        
-        if (!token) {
-          console.error('No auth token found');
-          return;
-        }
-
-        const orgName = userData?.data?.resp?.org;
-
-        if (orgName && formData.ward_id && formData.area_id) {
-          const localitiesResponse = await api.get(`api/v1/master/${orgName}/${formData.ward_id}/${formData.area_id}`, {
-            headers: {
-              'Authorization': `${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (localitiesResponse.data && Array.isArray(localitiesResponse.data.data)) {
-            const formattedLocalities = localitiesResponse.data.data.map(locality => ({
-              value: locality.loc_id,
-              label: locality.loc_name
-            }));
-            setUserLocalities(formattedLocalities);
-          }
-        }
-      } catch (error) {
-        console.error('API Error:', error);
-      } finally {
-        setLoading(false);
+      const userWards = userData?.data?.resp?.wards || [];
+      if (Array.isArray(userWards)) {
+        const formattedWards = userWards.map(ward => ({
+          value: ward.ward_id,
+          label: ward.ward_name
+        }));
+        setUserWards(formattedWards);
       }
-    };
+    } catch (error) {
+      console.error('Error processing user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchLocalities();
-  }, [formData.area_id]);
-
-  useEffect(() => {
-    const fetchStreets = async () => {
-      let token = null;
-      try {
-        setLoading(true);
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        token = userData?.authToken;
-        
-        if (!token) {
-          console.error('No auth token found');
-          return;
-        }
-
-        const orgName = userData?.data?.resp?.org;
-
-        if (orgName && formData.ward_id && formData.area_id && formData.locality_id) {
-          const streetsResponse = await api.get(`api/v1/master/${orgName}/${formData.ward_id}/${formData.area_id}/${formData.locality_id}`, {
-            headers: {
-              'Authorization': `${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (streetsResponse.data && Array.isArray(streetsResponse.data.data)) {
-            const formattedStreets = streetsResponse.data.data.map(street => ({
-              value: street.street_id,
-              label: street.street_name
-            }));
-            setUserStreets(formattedStreets);
-          }
-        }
-      } catch (error) {
-        console.error('API Error:', error);
-      } finally {
-        setLoading(false);
+  const fetchAreas = async (wardId) => {
+    if (!wardId) return;
+    
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const token = userData?.authToken;
+      
+      if (!token) {
+        console.error('No auth token found');
+        return;
       }
-    };
 
-    fetchStreets();
-  }, [formData.locality_id]);
+      const orgName = userData?.data?.resp?.org;
+      const response = await api.get(`api/v1/master/${orgName}/${wardId}`, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
 
-  const handleInputChange = (e) => {
+      if (response.data?.data) {
+        const formattedAreas = response.data.data.map(area => ({
+          value: area.area_id,
+          label: area.area_name
+        }));
+        setUserAreas(formattedAreas);
+      }
+    } catch (error) {
+      console.error('API Error:', error);
+      setUserAreas([]);
+    }
+  };
+
+  const fetchLocalities = async (wardId, areaId) => {
+    if (!wardId || !areaId) return;
+    
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const token = userData?.authToken;
+      
+      if (!token) {
+        console.error('No auth token found');
+        return;
+      }
+
+      const orgName = userData?.data?.resp?.org;
+      const response = await api.get(`api/v1/master/${orgName}/${wardId}/${areaId}`, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data?.data) {
+        const formattedLocalities = response.data.data.map(locality => ({
+          value: locality.loc_id,
+          label: locality.loc_name
+        }));
+        setUserLocalities(formattedLocalities);
+      }
+    } catch (error) {
+      console.error('API Error:', error);
+      setUserLocalities([]);
+    }
+  };
+
+  const fetchStreets = async (wardId, areaId, localityId) => {
+    if (!wardId || !areaId || !localityId) return;
+    
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const token = userData?.authToken;
+      
+      if (!token) {
+        console.error('No auth token found');
+        return;
+      }
+
+      const orgName = userData?.data?.resp?.org;
+      const response = await api.get(`api/v1/master/${orgName}/${wardId}/${areaId}/${localityId}`, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data?.data) {
+        const formattedStreets = response.data.data.map(street => ({
+          value: street.street_id,
+          label: street.street_name
+        }));
+        setUserStreets(formattedStreets);
+      }
+    } catch (error) {
+      console.error('API Error:', error);
+      setUserStreets([]);
+    }
+  };
+
+  // Key change: Modified handleInputChange to properly handle dropdown changes
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Update form data first
+    setFormData(prevData => {
+      const newData = { ...prevData };
+      newData[name] = value;
+      
+      // Reset dependent fields based on which field changed
+      switch (name) {
+        case 'ward_id':
+          newData.area_id = '';
+          newData.locality_id = '';
+          newData.street_id = '';
+          if (value) fetchAreas(value);
+          break;
+          
+        case 'area_id':
+          newData.locality_id = '';
+          newData.street_id = '';
+          if (value) fetchLocalities(newData.ward_id, value);
+          break;
+          
+        case 'locality_id':
+          newData.street_id = '';
+          if (value) fetchStreets(newData.ward_id, newData.area_id, value);
+          break;
+          
+        default:
+          break;
+      }
+      
+      return newData;
+    });
+
+    // Clear any errors for the changed field
     setFormErrors(prev => ({
       ...prev,
       [name]: ''
     }));
 
-    if (name === 'ward_id') {
-      setFormData(prev => ({
-        ...prev,
-        area_id: '',
-        locality_id: '',
-        street_id: '',
-        [name]: value
-      }));
-    }
-    
-    if (name === 'area_id') {
-      setFormData(prev => ({
-        ...prev,
-        locality_id: '',
-        street_id: '',
-        [name]: value
-      }));
-    }
-
-    if (name === 'locality_id') {
-      setFormData(prev => ({
-        ...prev,
-        street_id: '',
-        [name]: value
-      }));
-    }
-
+    // Clear search results when changing any dropdown
     setSearchResults([]);
   };
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.ward_id) {
-      errors.ward_id = 'Ward is required';
-    }
-    if (!formData.area_id) {
-      errors.area_id = 'Area is required';
-    }
-    if (!formData.locality_id) {
-      errors.locality_id = 'Locality is required';
-    }
-    if (!formData.street_id) {
-      errors.street_id = 'Street is required';
-    }
+    if (!formData.ward_id) errors.ward_id = 'Ward is required';
+    if (!formData.area_id) errors.area_id = 'Area is required';
+    if (!formData.locality_id) errors.locality_id = 'Locality is required';
+    if (!formData.street_id) errors.street_id = 'Street is required';
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (validateForm()) {
-      try {
-        setSearchLoading(true);
-        const userData = JSON.parse(localStorage.getItem('userData'));
-        const token = userData?.authToken;
-        
-        if (!token) {
-          console.error('No auth token found');
-          return;
-        }
+  const handleSearch = async (e) => {
+    e.preventDefault(); // Prevent form submission
+    
+    if (!validateForm()) return;
 
-        // Using template literals for better readability
-        const url = `/api/v1/asset?org_name=${encodeURIComponent(userOrgName)}&ward_id=${formData.ward_id}&area_id=${formData.area_id}&loc_id=${formData.locality_id}&street_id=${formData.street_id}`;
-
-        const response = await api.get(url, {
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.data?.data) {
-          setSearchResults(response.data.data);
-        } else {
-          setSearchResults([]);
-        }
-      } catch (error) {
-        console.error('Search API Error:', error);
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
+    try {
+      setSearchLoading(true);
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const token = userData?.authToken;
+      
+      if (!token) {
+        console.error('No auth token found');
+        return;
       }
+
+      const url = `/api/v1/asset?org_name=${encodeURIComponent(userOrgName)}&ward_id=${formData.ward_id}&area_id=${formData.area_id}&loc_id=${formData.locality_id}&street_id=${formData.street_id}`;
+
+      const response = await api.get(url, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      setSearchResults(response.data?.data || []);
+    } catch (error) {
+      console.error('Search API Error:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -329,15 +302,14 @@ const SurveyForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
-      <div className="max-w-[96%] mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 py-1">
+  <div className="w-full space-y-6">
         <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               <Search className="h-6 w-6 text-blue-500" />
               Property Search
             </h2>
-            <p className="text-gray-500 mt-2">Please fill in the details to search for properties</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -387,7 +359,8 @@ const SurveyForm = () => {
             />
             <div className="flex items-end">
               <button
-                onClick={handleSubmit}
+                onClick={handleSearch}
+                type="button"
                 disabled={loading || searchLoading}
                 className="w-full px-8 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
               >
@@ -402,10 +375,7 @@ const SurveyForm = () => {
           </div>
         </div>
 
-    
-
- {/* Properly Aligned Table */}
- {searchResults.length > 0 && (
+        {searchResults.length > 0 && (
           <div className="bg-white shadow-md rounded-lg">
             <div className="px-6 py-4 border-b">
               <h3 className="text-lg font-semibold">
@@ -427,7 +397,7 @@ const SurveyForm = () => {
                     </th>
                     <th className="text-left font-semibold px-6 py-4 border-b w-1/4">
                       Total Area (Sq.ft)
-                    </th>
+                      </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -458,19 +428,14 @@ const SurveyForm = () => {
           </div>
         )}
 
-        {/* Simple No Results Message */}
         {searchResults.length === 0 && !loading && !searchLoading && formData.street_id && (
           <div className="bg-white p-6 text-center rounded-lg shadow-md">
             <p className="text-gray-600">No properties found for the selected criteria.</p>
           </div>
         )}
-
-
-
       </div>
     </div>
   );
 };
 
 export default SurveyForm;
-                   

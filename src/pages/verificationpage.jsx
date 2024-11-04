@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin } from 'lucide-react';
+import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin, Camera, X } from 'lucide-react';
 import api from '../apiConfig/api';
 
 // Keep DetailSection Component exactly the same
@@ -27,7 +27,7 @@ const DetailItem = ({ label, value, icon: Icon }) => (
   </div>
 );
 
-// Keep FloorDetailsForm Component exactly the same
+// Updated FloorDetailsForm Component with photo upload
 const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
   const buildingUsageOptions = [
     { value: "commercial", label: "Commercial" },
@@ -35,6 +35,21 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
     { value: "residential", label: "Residential" },
     { value: "educational", label: "Educational" }
   ];
+
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 3) {
+      alert('You can only upload up to 3 photos');
+      return;
+    }
+    onChange(floorNumber, 'photos', files);
+  };
+
+  const removePhoto = (index) => {
+    const updatedPhotos = [...(data.photos || [])];
+    updatedPhotos.splice(index, 1);
+    onChange(floorNumber, 'photos', updatedPhotos);
+  };
 
   return (
     <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-6 hover:shadow-lg transition-all duration-300">
@@ -55,6 +70,7 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.floorArea || ''}
             onChange={(e) => onChange(floorNumber, 'floorArea', e.target.value)}
+            required
           />
         </div>
         <div className="space-y-3">
@@ -65,6 +81,7 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.buildingUsage || ''}
             onChange={(e) => onChange(floorNumber, 'buildingUsage', e.target.value)}
+            required
           >
             <option value="">Select Usage</option>
             {buildingUsageOptions.map(option => (
@@ -79,11 +96,47 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
             EB Number
           </label>
           <input
-            type="text"
+            type="number"
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.ebNumber || ''}
             onChange={(e) => onChange(floorNumber, 'ebNumber', e.target.value)}
+            required
           />
+        </div>
+      </div>
+
+      {/* Photo Upload Section */}
+      <div className="mt-8">
+        <label className="block text-sm font-semibold text-gray-700 mb-4">
+          Floor Photos (Max 3)
+        </label>
+        <div className="flex flex-wrap gap-4">
+          <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              max="3"
+            />
+            <Camera className="h-8 w-8 text-gray-400" />
+          </label>
+          {data.photos && data.photos.map((photo, index) => (
+            <div key={index} className="relative w-32 h-32">
+              <img
+                src={URL.createObjectURL(photo)}
+                alt={`Floor ${floorNumber} photo ${index + 1}`}
+                className="w-full h-full object-cover rounded-xl"
+              />
+              <button
+                onClick={() => removePhoto(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -99,9 +152,11 @@ const VerificationPage = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [totalArea, setTotalArea] = useState('');
   const [buildingStructure, setBuildingStructure] = useState('');
+  const [buildingType, setBuildingType] = useState('');
   const [totalFloors, setTotalFloors] = useState(0);
   const [floorDetails, setFloorDetails] = useState({});
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     zoneId: '',
     wardId: '',
@@ -140,7 +195,6 @@ const VerificationPage = () => {
           });
           setMobileNumber(propertyDetails.mobile_number || '');
           setTotalArea(propertyDetails.build_area || '');
-          // Set other initial states based on API response
         }
       } catch (error) {
         console.error('Error fetching property details:', error);
@@ -152,9 +206,54 @@ const VerificationPage = () => {
     fetchPropertyDetails();
   }, [id]);
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!ownerVerified) {
+      newErrors.ownerVerified = 'Please verify the owner';
+    }
+
+    if (!mobileNumber || !/^\d{10}$/.test(mobileNumber)) {
+      newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number';
+    }
+
+    if (!totalArea) {
+      newErrors.totalArea = 'Total area is required';
+    }
+
+    if (!buildingStructure) {
+      newErrors.buildingStructure = 'Building structure is required';
+    }
+
+    if (!buildingType) {
+      newErrors.buildingType = 'Building type is required';
+    }
+
+    // Validate floor details
+    Object.keys(floorDetails).forEach(floor => {
+      if (!floorDetails[floor].floorArea) {
+        newErrors[`floor${floor}Area`] = 'Floor area is required';
+      }
+      if (!floorDetails[floor].buildingUsage) {
+        newErrors[`floor${floor}Usage`] = 'Building usage is required';
+      }
+      if (!floorDetails[floor].ebNumber) {
+        newErrors[`floor${floor}EbNumber`] = 'EB number is required';
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleBack = () => navigate(-1);
   
   const handleSubmit = () => {
+    if (!validateForm()) {
+      alert('Please fill all required fields correctly');
+      return;
+    }
+
     const submitData = {
       ...formData,
       propertyId: id,
@@ -162,6 +261,7 @@ const VerificationPage = () => {
       mobileNumber,
       totalArea,
       buildingStructure,
+      buildingType,
       totalFloors,
       floorDetails,
     };
@@ -241,13 +341,16 @@ const VerificationPage = () => {
             />
             <span className="text-gray-700 font-medium">I confirm this is the correct owner name</span>
           </label>
+          {errors.ownerVerified && (
+            <p className="text-red-500 mt-2">{errors.ownerVerified}</p>
+          )}
         </DetailSection>
 
         {/* Property Information Section */}
         <DetailSection title="Property Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Location Details */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
+           {/* Location Details */}
+           <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
               <div className="grid gap-6">
                 {[
                   { key: 'zoneId', label: 'Zone ID', value: propertyData.zone_id },
@@ -331,43 +434,75 @@ const VerificationPage = () => {
         </DetailSection>
 
        {/* Additional Property Details Section */}
-       <DetailSection title="Additional Property Details">
+       <DetailSection title="Survey Details">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                label: "Mobile Number",
-                type: "tel",
-                value: mobileNumber,
-                onChange: setMobileNumber,
-              },
-              {
-                label: "Total Area (sq ft)",
-                type: "number",
-                value: totalArea,
-                onChange: setTotalArea,
-              },
-              {
-                label: "Assessment ID",
-                type: "text",
-                value: propertyData.asst_id,
-                readOnly: true,
-              }
-            ].map((field) => (
-              <div key={field.label} className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-700">
-                  {field.label}
-                </label>
-                <input
-                  type={field.type}
-                  className={`w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
-                    field.readOnly ? 'bg-gray-50' : ''
-                  }`}
-                  value={field.value}
-                  onChange={field.onChange ? (e) => field.onChange(e.target.value) : undefined}
-                  readOnly={field.readOnly}
-                />
-              </div>
-            ))}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Mobile Number
+              </label>
+              <input
+                type="tel"
+                pattern="[0-9]{10}"
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                value={mobileNumber}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setMobileNumber(value);
+                }}
+                required
+              />
+              {errors.mobileNumber && (
+                <p className="text-red-500 text-sm mt-1">{errors.mobileNumber}</p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Total Area (sq ft)
+              </label>
+              <input
+                type="number"
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                value={totalArea}
+                onChange={(e) => setTotalArea(e.target.value)}
+                required
+              />
+              {errors.totalArea && (
+                <p className="text-red-500 text-sm mt-1">{errors.totalArea}</p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Assessment ID
+              </label>
+              <input
+                type="text"
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 transition-all duration-300"
+                value={propertyData.asst_id}
+                readOnly
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Building Type
+              </label>
+              <select
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                value={buildingType}
+                onChange={(e) => setBuildingType(e.target.value)}
+                required
+              >
+                <option value="">Select Type</option>
+                <option value="apartment">Apartment</option>
+                <option value="row_house">Row House</option>
+                <option value="independent">Independent House</option>
+              </select>
+              {errors.buildingType && (
+                <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
+              )}
+            </div>
 
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">
@@ -377,12 +512,16 @@ const VerificationPage = () => {
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
                 value={buildingStructure}
                 onChange={(e) => setBuildingStructure(e.target.value)}
+                required
               >
                 <option value="">Select Type</option>
                 <option value="ac">AC Sheet</option>
                 <option value="tatched">Tatched</option>
                 <option value="rcc">RCC Sheet</option>
               </select>
+              {errors.buildingStructure && (
+                <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -393,6 +532,7 @@ const VerificationPage = () => {
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
                 value={totalFloors}
                 onChange={(e) => setTotalFloors(e.target.value)}
+                required
               >
                 {Array.from({ length: 11 }, (_, i) => (
                   <option key={i} value={i}>{i}</option>
