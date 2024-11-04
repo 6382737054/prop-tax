@@ -1,1 +1,1 @@
-export const API_URL = process.env.REACT_APP_API_URL || 'http://13.127.255.198:3005';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://dmapt.klabsindia.com';

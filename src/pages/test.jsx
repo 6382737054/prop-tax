@@ -9,12 +9,10 @@ import {
   AlertCircle,
   Table,
   Phone,
-  User,
-  ArrowRight
+  User
 } from 'lucide-react';
-import filterData from './filterData.json';
+import api from '../apiConfig/api';
 
-// Enhanced SelectField with better styling and animations
 const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
   <div className="space-y-2 relative group">
     <label htmlFor={id} className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -51,182 +49,70 @@ const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
   </div>
 );
 
-// Enhanced ResultsTable with better styling and animations
-const ResultsTable = ({ results }) => {
-  const navigate = useNavigate();
-
-  if (!results || results.length === 0) return (
-    <div className="mt-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 text-center border border-gray-200 shadow-sm">
-      <div className="max-w-md mx-auto space-y-4">
-        <Search className="h-12 w-12 text-gray-400 mx-auto" />
-        <p className="text-gray-600 font-medium">No results found. Please try different search criteria.</p>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="mt-8 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Table className="h-6 w-6 text-blue-500" />
-            <h3 className="text-lg font-semibold text-gray-900">Search Results</h3>
-          </div>
-          <span className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium">
-            {results.length} Results Found
-          </span>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                S.No
-              </th>
-              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                Door Number
-              </th>
-              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                Owner Name
-              </th>
-              <th className="px-6 py-4 border-b-2 border-gray-200 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                Phone Number
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {results.map((item, index) => (
-              <tr 
-                key={index} 
-                className="hover:bg-blue-50 transition-colors cursor-pointer"
-                onClick={() => navigate(`/verify/${item.id}`)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {index + 1}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <Home className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-800">
-                      {item.DoorNo}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-900">
-                      {item.Ownername}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-900">
-                      {item.PhoneNumber}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
 const SurveyForm = () => {
   const [formData, setFormData] = useState({
-    wardName: '',
-    areaName: '',
-    localityName: '',
-    streetName: ''
+    ward_name: '',
+    area_name: '',
+    locality_name: '',
+    street_name: ''
   });
   const [formErrors, setFormErrors] = useState({});
-  const [filteredData, setFilteredData] = useState([]);
-  const [filteredLocalities, setFilteredLocalities] = useState([]);
-  const [filteredStreets, setFilteredStreets] = useState([]);
   const [userWards, setUserWards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchResults, setSearchResults] = useState([]);
+  const [apiError, setApiError] = useState(null);
 
-  // Keep all existing useEffect hooks and handlers exactly the same
   useEffect(() => {
-    const fetchUserWards = async () => {
+    const fetchWards = async () => {
+      let token = null;
       try {
-        const wards = [...new Set(filterData.data.map(item => item.WardName))];
-        const formattedWards = wards.map(ward => ({
-          value: ward,
-          label: ward
-        }));
-        setUserWards(formattedWards);
+        setLoading(true);
+        setApiError(null);
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        token = userData?.authToken;
+        
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
+
+        // Encode the municipality name properly for the URL
+        const municipalityName = encodeURIComponent('ADIRAMPATTINAM MUNICIPALITY');
+        
+        const response = await api.get(`api/v1/master/${municipalityName}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`, // Added Bearer prefix
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000 // Increased timeout to 10 seconds
+        });
+
+        if (response.data && Array.isArray(response.data.data)) {
+          const formattedWards = response.data.data.map(ward => ({
+            value: ward.ward_name,
+            label: `${ward.ward_name}`, // Format the label as needed
+          }));
+          setUserWards(formattedWards);
+        } else {
+          throw new Error('Invalid data format received from server');
+        }
       } catch (error) {
-        console.error('Error loading ward data:', error);
+        console.error('API Error:', error);
+        setApiError(error.response?.data?.message || error.message || 'Failed to fetch wards');
+        
+        // Log detailed error information for debugging
+        if (error.response) {
+          console.log('Error Response:', {
+            data: error.response.data,
+            status: error.response.status,
+            headers: error.response.headers
+          });
+        }
       } finally {
         setLoading(false);
       }
     };
-    fetchUserWards();
+
+    fetchWards();
   }, []);
-
-  useEffect(() => {
-    if (formData.wardName) {
-      const wardData = filterData.data.filter(item => 
-        item.WardName.toLowerCase() === formData.wardName.toLowerCase()
-      );
-      
-      const areas = [...new Set(wardData.map(item => item.AreaName))]
-        .filter(Boolean)
-        .map(area => ({
-          value: area,
-          label: area
-        }));
-      setFilteredData(areas);
-
-      setFilteredLocalities([]);
-      setFilteredStreets([]);
-    }
-  }, [formData.wardName]);
-
-  useEffect(() => {
-    if (formData.wardName && formData.areaName) {
-      const areaData = filterData.data.filter(item => 
-        item.WardName.toLowerCase() === formData.wardName.toLowerCase() &&
-        item.AreaName.toLowerCase() === formData.areaName.toLowerCase()
-      );
-
-      const localities = [...new Set(areaData.map(item => item.LocalityName))]
-        .filter(Boolean)
-        .map(locality => ({
-          value: locality,
-          label: locality
-        }));
-      setFilteredLocalities(localities);
-
-      setFilteredStreets([]);
-    }
-  }, [formData.wardName, formData.areaName]);
-
-  useEffect(() => {
-    if (formData.wardName && formData.areaName && formData.localityName) {
-      const localityData = filterData.data.filter(item => 
-        item.WardName.toLowerCase() === formData.wardName.toLowerCase() &&
-        item.AreaName.toLowerCase() === formData.areaName.toLowerCase() &&
-        item.LocalityName.toLowerCase() === formData.localityName.toLowerCase()
-      );
-
-      const streets = [...new Set(localityData.map(item => item.StreetName))]
-        .filter(Boolean)
-        .map(street => ({
-          value: street,
-          label: street
-        }));
-      setFilteredStreets(streets);
-    }
-  }, [formData.wardName, formData.areaName, formData.localityName]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -239,60 +125,25 @@ const SurveyForm = () => {
       [name]: ''
     }));
 
-    if (name === 'wardName') {
+    if (name === 'ward_name') {
       setFormData(prev => ({
         ...prev,
-        areaName: '',
-        localityName: '',
-        streetName: '',
-        [name]: value
-      }));
-    } else if (name === 'areaName') {
-      setFormData(prev => ({
-        ...prev,
-        localityName: '',
-        streetName: '',
-        [name]: value
-      }));
-    } else if (name === 'localityName') {
-      setFormData(prev => ({
-        ...prev,
-        streetName: '',
+        area_name: '',
+        locality_name: '',
+        street_name: '',
         [name]: value
       }));
     }
-    setSearchResults([]);
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.wardName) errors.wardName = 'Ward name is required';
-    if (!formData.areaName) errors.areaName = 'Area name is required';
-    if (!formData.localityName) errors.localityName = 'Locality name is required';
-    if (!formData.streetName) errors.streetName = 'Street name is required';
-    return errors;
   };
 
   const handleSubmit = () => {
-    const errors = validateForm();
-    if (Object.keys(errors).length === 0) {
-      const results = filterData.data.filter(item => 
-        item.WardName.toLowerCase().trim() === formData.wardName.toLowerCase().trim() &&
-        item.AreaName.toLowerCase().trim() === formData.areaName.toLowerCase().trim() &&
-        item.LocalityName.toLowerCase().trim() === formData.localityName.toLowerCase().trim() &&
-        item.StreetName.toLowerCase().trim() === formData.streetName.toLowerCase().trim()
-      );
-      setSearchResults(results);
-    } else {
-      setFormErrors(errors);
-    }
+    console.log('Form submitted with:', formData);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Enhanced Search Form */}
-        <div className="bg-white shadow-xl rounded-2xl p-8 mb-8 border border-gray-100">
+    <div className="min-h-screen bg-gray-50 py-6">
+      <div className="max-w-[96%] mx-auto space-y-6">
+        <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               <Search className="h-6 w-6 text-blue-500" />
@@ -301,70 +152,73 @@ const SurveyForm = () => {
             <p className="text-gray-500 mt-2">Please fill in the details to search for properties</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {apiError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <span>{apiError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <SelectField
               label="Ward Name"
-              id="wardName"
-              name="wardName"
-              value={formData.wardName}
+              id="ward_name"
+              name="ward_name"
+              value={formData.ward_name}
               onChange={handleInputChange}
               options={userWards}
-              error={formErrors.wardName}
+              error={formErrors.ward_name}
               icon={Home}
+              disabled={loading}
             />
             <SelectField
               label="Area Name"
-              id="areaName"
-              name="areaName"
-              value={formData.areaName}
+              id="area_name"
+              name="area_name"
+              value={formData.area_name}
               onChange={handleInputChange}
-              options={filteredData}
-              error={formErrors.areaName}
-              disabled={!formData.wardName}
+              options={[]}
+              error={formErrors.area_name}
+              disabled={!formData.ward_name}
               icon={Building}
             />
             <SelectField
               label="Locality Name"
-              id="localityName"
-              name="localityName"
-              value={formData.localityName}
+              id="locality_name"
+              name="locality_name"
+              value={formData.locality_name}
               onChange={handleInputChange}
-              options={filteredLocalities}
-              error={formErrors.localityName}
-              disabled={!formData.areaName}
+              options={[]}
+              error={formErrors.locality_name}
+              disabled={!formData.area_name}
               icon={MapPin}
             />
             <SelectField
               label="Street Name"
-              id="streetName"
-              name="streetName"
-              value={formData.streetName}
+              id="street_name"
+              name="street_name"
+              value={formData.street_name}
               onChange={handleInputChange}
-              options={filteredStreets}
-              error={formErrors.streetName}
-              disabled={!formData.localityName}
+              options={[]}
+              error={formErrors.street_name}
+              disabled={!formData.locality_name}
               icon={MapPin}
             />
-          </div>
-
-          <div className="mt-8 flex justify-end">
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-8 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transform font-semibold"
-            >
-              <Search className="h-5 w-5" />
-              Search Properties
-              <ArrowRight className="h-5 w-5 ml-1" />
-            </button>
+            <div className="flex items-end">
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full px-8 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
+              >
+                <Search className="h-5 w-5" />
+                Search
+              </button>
+            </div>
           </div>
         </div>
-
-        <ResultsTable results={searchResults} />
       </div>
     </div>
   );
 };
 
 export default SurveyForm;
-
