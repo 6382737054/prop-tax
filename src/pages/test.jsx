@@ -306,10 +306,7 @@ const SurveyForm = () => {
   <div className="w-full space-y-6">
         <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <Search className="h-6 w-6 text-blue-500" />
-              Property Search
-            </h2>
+          
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -429,7 +426,7 @@ const SurveyForm = () => {
         )}
 
         {searchResults.length === 0 && !loading && !searchLoading && formData.street_id && (
-          <div className="bg-white p-6 text-center rounded-lg shadow-md">
+          <div className="bg-white p-6 text-center rounded-lg shadow-md ">
             <p className="text-gray-600">No properties found for the selected criteria.</p>
           </div>
         )}

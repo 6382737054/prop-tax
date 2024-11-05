@@ -157,12 +157,27 @@ const VerificationPage = () => {
   const [floorDetails, setFloorDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [isMobileValid, setIsMobileValid] = useState(true);
+  const [showMobileError, setShowMobileError] = useState(false);
+  
+  // New states for building/non-building flow
+  const [isBuilding, setIsBuilding] = useState(true);
+  const [currentUsage, setCurrentUsage] = useState('');
+  const [currentStructure, setCurrentStructure] = useState('');
+  const [propertyPhotos, setPropertyPhotos] = useState([]);
+  
   const [formData, setFormData] = useState({
     zoneId: '',
     wardId: '',
     areaId: '',
     localityId: '',
   });
+
+  const validateMobileNumber = (number) => {
+    const isValid = /^\d{10}$/.test(number);
+    setIsMobileValid(isValid);
+    return isValid;
+  };
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -193,7 +208,9 @@ const VerificationPage = () => {
             areaId: propertyDetails.area_id,
             localityId: propertyDetails.loc_id,
           });
-          setMobileNumber(propertyDetails.mobile_number || '');
+          const mobileNum = propertyDetails.mobile_number || '';
+          setMobileNumber(mobileNum);
+          validateMobileNumber(mobileNum);
           setTotalArea(propertyDetails.build_area || '');
         }
       } catch (error) {
@@ -206,6 +223,21 @@ const VerificationPage = () => {
     fetchPropertyDetails();
   }, [id]);
 
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 3) {
+      alert('You can only upload up to 3 photos');
+      return;
+    }
+    setPropertyPhotos(files);
+  };
+
+  const removePhoto = (index) => {
+    const updatedPhotos = [...propertyPhotos];
+    updatedPhotos.splice(index, 1);
+    setPropertyPhotos(updatedPhotos);
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -213,34 +245,49 @@ const VerificationPage = () => {
       newErrors.ownerVerified = 'Please verify the owner';
     }
 
-    if (!mobileNumber || !/^\d{10}$/.test(mobileNumber)) {
+    if (!mobileNumber || !validateMobileNumber(mobileNumber)) {
       newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number';
+      setShowMobileError(true);
+      setIsMobileValid(false);
+      return false;
     }
 
     if (!totalArea) {
       newErrors.totalArea = 'Total area is required';
     }
 
-    if (!buildingStructure) {
-      newErrors.buildingStructure = 'Building structure is required';
-    }
+    if (isBuilding) {
+      if (!buildingStructure) {
+        newErrors.buildingStructure = 'Building structure is required';
+      }
 
-    if (!buildingType) {
-      newErrors.buildingType = 'Building type is required';
-    }
+      if (!buildingType) {
+        newErrors.buildingType = 'Building type is required';
+      }
 
-    // Validate floor details
-    Object.keys(floorDetails).forEach(floor => {
-      if (!floorDetails[floor].floorArea) {
-        newErrors[`floor${floor}Area`] = 'Floor area is required';
+      // Validate floor details
+      Object.keys(floorDetails).forEach(floor => {
+        if (!floorDetails[floor].floorArea) {
+          newErrors[`floor${floor}Area`] = 'Floor area is required';
+        }
+        if (!floorDetails[floor].buildingUsage) {
+          newErrors[`floor${floor}Usage`] = 'Building usage is required';
+        }
+        if (!floorDetails[floor].ebNumber) {
+          newErrors[`floor${floor}EbNumber`] = 'EB number is required';
+        }
+      });
+    } else {
+      if (!currentUsage) {
+        newErrors.currentUsage = 'Current usage is required';
       }
-      if (!floorDetails[floor].buildingUsage) {
-        newErrors[`floor${floor}Usage`] = 'Building usage is required';
+      if (!currentStructure) {
+        newErrors.currentStructure = 'Current structure is required';
       }
-      if (!floorDetails[floor].ebNumber) {
-        newErrors[`floor${floor}EbNumber`] = 'EB number is required';
+      if (propertyPhotos.length === 0) {
+        newErrors.propertyPhotos = 'At least one photo is required';
       }
-    });
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -260,10 +307,20 @@ const VerificationPage = () => {
       ownerVerified,
       mobileNumber,
       totalArea,
-      buildingStructure,
-      buildingType,
-      totalFloors,
-      floorDetails,
+      isBuilding,
+      ...(isBuilding 
+        ? {
+            buildingStructure,
+            buildingType,
+            totalFloors,
+            floorDetails,
+          }
+        : {
+            currentUsage,
+            currentStructure,
+            propertyPhotos,
+          }
+      ),
     };
     
     console.log('Submitting data:', submitData);
@@ -349,8 +406,8 @@ const VerificationPage = () => {
         {/* Property Information Section */}
         <DetailSection title="Property Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           {/* Location Details */}
-           <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
+            {/* Location Details */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
               <div className="grid gap-6">
                 {[
                   { key: 'zoneId', label: 'Zone ID', value: propertyData.zone_id },
@@ -377,64 +434,28 @@ const VerificationPage = () => {
             {/* Contact Information */}
             <div className="space-y-6">
               <div className="grid gap-4">
-                <DetailItem 
-                  label="Zone Name" 
-                  value={propertyData.zone_name} 
-                  icon={MapPin} 
-                />
-                <DetailItem 
-                  label="Ward Name" 
-                  value={propertyData.ward_name} 
-                  icon={Building} 
-                />
-                <DetailItem 
-                  label="Area Name" 
-                  value={propertyData.area_name} 
-                  icon={MapPin} 
-                />
-                <DetailItem 
-                  label="Street Name" 
-                  value={propertyData.street_name} 
-                  icon={MapPin} 
-                />
-                <DetailItem 
-                  label="Locality Name" 
-                  value={propertyData.loc_name} 
-                  icon={MapPin} 
-                />
+                <DetailItem label="Zone Name" value={propertyData.zone_name} icon={MapPin} />
+                <DetailItem label="Ward Name" value={propertyData.ward_name} icon={Building} />
+                <DetailItem label="Area Name" value={propertyData.area_name} icon={MapPin} />
+                <DetailItem label="Street Name" value={propertyData.street_name} icon={MapPin} />
+                <DetailItem label="Locality Name" value={propertyData.loc_name} icon={MapPin} />
               </div>
             </div>
 
             {/* Property Details */}
             <div className="space-y-6">
               <div className="grid gap-4">
-                <DetailItem 
-                  label="Assessment Ref" 
-                  value={propertyData.asst_ref}
-                  icon={LayoutDashboard}
-                />
-                <DetailItem 
-                  label="Door Number" 
-                  value={propertyData.new_door} 
-                  icon={Building} 
-                />
-                <DetailItem 
-                  label="Usage Type" 
-                  value={propertyData.usage_type} 
-                  icon={Building} 
-                />
-                <DetailItem 
-                  label="Building Area" 
-                  value={`${propertyData.build_area} sq.ft`} 
-                  icon={LayoutDashboard} 
-                />
+                <DetailItem label="Assessment Ref" value={propertyData.asst_ref} icon={LayoutDashboard} />
+                <DetailItem label="Door Number" value={propertyData.new_door} icon={Building} />
+                <DetailItem label="Usage Type" value={propertyData.usage_type} icon={Building} />
+                <DetailItem label="Building Area" value={`${propertyData.build_area} sq.ft`} icon={LayoutDashboard} />
               </div>
             </div>
           </div>
         </DetailSection>
 
-       {/* Additional Property Details Section */}
-       <DetailSection title="Survey Details">
+        {/* Survey Details Section */}
+        <DetailSection title="Survey Details">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">
@@ -443,16 +464,27 @@ const VerificationPage = () => {
               <input
                 type="tel"
                 pattern="[0-9]{10}"
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                className={`w-full p-4 border ${!isMobileValid ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 ${
+                  isMobileValid ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-red-500 focus:border-red-500'
+                } transition-all duration-300`}
                 value={mobileNumber}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                   setMobileNumber(value);
+                  if (value.length === 10) {
+                    validateMobileNumber(value);
+                  } else {
+                    setIsMobileValid(false);
+                  }
+                }}
+                onBlur={() => {
+                  validateMobileNumber(mobileNumber);
+                  setShowMobileError(true);
                 }}
                 required
               />
-              {errors.mobileNumber && (
-                <p className="text-red-500 text-sm mt-1">{errors.mobileNumber}</p>
+              {(!isMobileValid && showMobileError) && (
+                <p className="text-red-500 text-sm mt-1">Please enter a valid 10-digit mobile number</p>
               )}
             </div>
 
@@ -484,77 +516,181 @@ const VerificationPage = () => {
               />
             </div>
 
+            {/* Building Type Selection */}
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">
-                Building Type
+                Is this a Building?
               </label>
               <select
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                value={buildingType}
-                onChange={(e) => setBuildingType(e.target.value)}
+                value={isBuilding.toString()}
+                onChange={(e) => setIsBuilding(e.target.value === 'true')}
                 required
               >
-                <option value="">Select Type</option>
-                <option value="apartment">Apartment</option>
-                <option value="row_house">Row House</option>
-                <option value="independent">Independent House</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
               </select>
-              {errors.buildingType && (
-                <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
-              )}
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Building Structure
-              </label>
-              <select
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                value={buildingStructure}
-                onChange={(e) => setBuildingStructure(e.target.value)}
-                required
-              >
-                <option value="">Select Type</option>
-                <option value="ac">AC Sheet</option>
-                <option value="tatched">Tatched</option>
-                <option value="rcc">RCC Sheet</option>
-              </select>
-              {errors.buildingStructure && (
-                <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
-              )}
-            </div>
+            {isBuilding ? (
+              <>
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Building Type
+                  </label>
+                  <select
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    value={buildingType}
+                    onChange={(e) => setBuildingType(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Type</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="row_house">Row House</option>
+                    <option value="independent">Independent House</option>
+                  </select>
+                  {errors.buildingType && (
+                    <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
+                  )}
+                </div>
 
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Total Number of Floors
-              </label>
-              <select
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                value={totalFloors}
-                onChange={(e) => setTotalFloors(e.target.value)}
-                required
-              >
-                {Array.from({ length: 11 }, (_, i) => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </select>
-            </div>
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Building Structure
+                  </label>
+                  <select
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    value={buildingStructure}
+                    onChange={(e) => setBuildingStructure(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Type</option>
+                    <option value="ac">AC Sheet</option>
+                    <option value="tatched">Tatched</option>
+                    <option value="rcc">RCC Sheet</option>
+                  </select>
+                  {errors.buildingStructure && (
+                    <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Total Number of Floors
+                  </label>
+                  <select
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    value={totalFloors}
+                    onChange={(e) => setTotalFloors(e.target.value)}
+                    required
+                  >
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <option key={i} value={i}>{i}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Current Usage
+                  </label>
+                  <select
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    value={currentUsage}
+                    onChange={(e) => setCurrentUsage(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Usage</option>
+                    <option value="parking">Parking</option>
+                    <option value="garden">Garden</option>
+                    <option value="playground">Playground</option>
+                    <option value="vacant">Vacant Land</option>
+                  </select>
+                  {errors.currentUsage && (
+                    <p className="text-red-500 text-sm mt-1">{errors.currentUsage}</p>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Current Structure
+                  </label>
+                  <select
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    value={currentStructure}
+                    onChange={(e) => setCurrentStructure(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Structure</option>
+                    <option value="open">Open Land</option>
+                    <option value="fenced">Fenced</option>
+                    <option value="paved">Paved</option>
+                    <option value="landscaped">Landscaped</option>
+                  </select>
+                  {errors.currentStructure && (
+                    <p className="text-red-500 text-sm mt-1">{errors.currentStructure}</p>
+                  )}
+                </div>
+
+                {/* Photo Upload for Non-Building */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Property Photos (1-3)
+                  </label>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        max="3"
+                      />
+                      <Camera className="h-8 w-8 text-gray-400" />
+                    </label>
+                    {propertyPhotos.map((photo, index) => (
+                      <div key={index} className="relative w-32 h-32">
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt={`Property photo ${index + 1}`}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        <button
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.propertyPhotos && (
+                    <p className="text-red-500 text-sm mt-1">{errors.propertyPhotos}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </DetailSection>
 
-        {/* Floor Details Section */}
-        <DetailSection title="Floor-wise Details">
-          <div className="grid grid-cols-1 gap-8">
-            {floorNumbers.map((floorNumber) => (
-              <FloorDetailsForm
-                key={floorNumber}
-                floorNumber={floorNumber}
-                onChange={handleFloorDetailsChange}
-                data={floorDetails[floorNumber] || {}}
-              />
-            ))}
-          </div>
-        </DetailSection>
+        {/* Floor Details Section - Only show if isBuilding is true */}
+        {isBuilding && (
+          <DetailSection title="Floor-wise Details">
+            <div className="grid grid-cols-1 gap-8">
+              {floorNumbers.map((floorNumber) => (
+                <FloorDetailsForm
+                  key={floorNumber}
+                  floorNumber={floorNumber}
+                  onChange={handleFloorDetailsChange}
+                  data={floorDetails[floorNumber] || {}}
+                />
+              ))}
+            </div>
+          </DetailSection>
+        )}
 
         {/* Submit Button */}
         <div className="flex justify-center mt-12 mb-12">
