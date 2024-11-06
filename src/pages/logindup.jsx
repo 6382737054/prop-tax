@@ -1,29 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Check, Phone, Building } from 'lucide-react';
-import filterData from './filterData.json';
+import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
+import api from '../apiConfig/api';
+import LocationMap from '../components/locationmap';
 
-// DetailSection Component for consistent section styling
+// Keep DetailSection Component exactly the same
+// Update DetailSection Component
 const DetailSection = ({ title, children }) => (
-  <div className="bg-white p-6 rounded-lg shadow-lg border mb-6 hover:shadow-xl transition-shadow">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">{title}</h3>
-    {children}
-  </div>
-);
-
-// DetailItem Component for consistent styling
-const DetailItem = ({ label, value, icon: Icon }) => (
-  <div className="p-4 bg-white rounded-lg border hover:border-blue-500 transition-colors">
-    <div className="flex items-center gap-2 mb-2">
-      {Icon && <Icon className="h-4 w-4 text-blue-500" />}
-      <label className="text-sm font-medium text-gray-600">{label}</label>
+  <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 mb-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+      <div className="h-8 w-1 bg-sky-500 rounded-full"></div> {/* Changed from bg-blue-500 to bg-sky-500 */}
+      {title}
+    </h3>
+    <div className="animate-fadeIn">
+      {children}
     </div>
-    <p className="text-lg font-medium text-gray-900">{value}</p>
   </div>
 );
 
-// Floor Details Form Component
-const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
+// Keep DetailItem Component exactly the same
+const DetailItem = ({ label, value, icon: Icon }) => (
+  <div className="p-5 bg-white rounded-xl border border-gray-200 hover:border-blue-500 transition-all duration-300 group">
+    <div className="flex items-center gap-3 mb-2">
+      {Icon && <Icon className="h-5 w-5 text-sky-500 group-hover:scale-110 transition-transform duration-300" />}
+      <label className="text-sm font-semibold text-gray-600">{label}</label>
+    </div>
+    <p className="text-lg font-semibold text-gray-900 pl-8">{value}</p>
+  </div>
+);
+
+// Updated PropertyDetailsForm Component with photo upload
+const PropertyDetailsForm = ({ onChange, data }) => {
   const buildingUsageOptions = [
     { value: "commercial", label: "Commercial" },
     { value: "government", label: "Government" },
@@ -31,32 +38,52 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
     { value: "educational", label: "Educational" }
   ];
 
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 3) {
+      alert('You can only upload up to 3 photos');
+      return;
+    }
+    onChange('photos', files);
+  };
+
+  const removePhoto = (index) => {
+    const updatedPhotos = [...(data.photos || [])];
+    updatedPhotos.splice(index, 1);
+    onChange('photos', updatedPhotos);
+  };
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border mb-4 hover:shadow-lg transition-shadow">
-      <h4 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <Building className="h-5 w-5 text-blue-500" />
-        {floorNumber === 0 ? 'Ground Floor Details' : `Floor ${floorNumber} Details`}
+    <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-6 hover:shadow-lg transition-all duration-300">
+      <h4 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+        <Building className="h-6 w-6 text-sky-500" />
+        <span className="relative">
+        
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+        </span>
       </h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Total Floor Area (sq ft)
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Total  Area (sq ft)
           </label>
           <input
             type="number"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.floorArea || ''}
-            onChange={(e) => onChange(floorNumber, 'floorArea', e.target.value)}
+            onChange={(e) => onChange('floorArea', e.target.value)}
+            required
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Building Usage
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Usage
           </label>
           <select
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.buildingUsage || ''}
-            onChange={(e) => onChange(floorNumber, 'buildingUsage', e.target.value)}
+            onChange={(e) => onChange('buildingUsage', e.target.value)}
+            required
           >
             <option value="">Select Usage</option>
             {buildingUsageOptions.map(option => (
@@ -66,16 +93,52 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             EB Number
           </label>
           <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            type="number"
+            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.ebNumber || ''}
-            onChange={(e) => onChange(floorNumber, 'ebNumber', e.target.value)}
+            onChange={(e) => onChange('ebNumber', e.target.value)}
+            required
           />
+        </div>
+      </div>
+
+      {/* Photo Upload Section */}
+      <div className="mt-8">
+        <label className="block text-sm font-semibold text-gray-700 mb-4">
+          Property Photos (Max 3)
+        </label>
+        <div className="flex flex-wrap gap-4">
+          <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              max="3"
+            />
+            <Camera className="h-8 w-8 text-gray-400" />
+          </label>
+          {data.photos && data.photos.map((photo, index) => (
+            <div key={index} className="relative w-32 h-32">
+              <img
+                src={URL.createObjectURL(photo)}
+                alt={`Property photo ${index + 1}`}
+                className="w-full h-full object-cover rounded-xl"
+              />
+              <button
+                onClick={() => removePhoto(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -86,13 +149,30 @@ const VerificationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [propertyData, setPropertyData] = useState(null);
-  const [ownerVerified, setOwnerVerified] = useState(false);
+  const [ownerVerified, setOwnerVerified] = useState(true);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
   const [totalArea, setTotalArea] = useState('');
   const [buildingStructure, setBuildingStructure] = useState('');
-  const [totalFloors, setTotalFloors] = useState(0);
-  const [floorDetails, setFloorDetails] = useState({});
+  const [buildingType, setBuildingType] = useState('');
+  const [apartmentFloor, setApartmentFloor] = useState('');
+  const [propertyDetails, setPropertyDetails] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [isMobileValid, setIsMobileValid] = useState(true);
+  const [showMobileError, setShowMobileError] = useState(false);
+  const [newOwnerName, setNewOwnerName] = useState('');
+  const [totalFloors, setTotalFloors] = useState('');
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // New states for building/non-building flow
+  const [isBuilding, setIsBuilding] = useState(true);
+  const [currentUsage, setCurrentUsage] = useState('');
+  const [currentStructure, setCurrentStructure] = useState('');
+  const [propertyPhotos, setPropertyPhotos] = useState([]);
+  
   const [formData, setFormData] = useState({
     zoneId: '',
     wardId: '',
@@ -100,285 +180,716 @@ const VerificationPage = () => {
     localityId: '',
   });
 
+  const validateMobileNumber = (number) => {
+    const isValid = /^\d{10}$/.test(number);
+    setIsMobileValid(isValid);
+    return isValid;
+  };
+
   useEffect(() => {
-    const property = filterData.data.find(item => item.id === parseInt(id));
-    if (property) {
-      setPropertyData(property);
-      setFormData({
-        zoneId: property.ZoneID,
-        wardId: property.WardID,
-        areaId: property.AreaID,
-        localityId: property.LocalityID,
-      });
-      setMobileNumber(property.PhoneNumber);
-      setTotalArea(property.TotalBuildArea);
-    }
+    const fetchPropertyDetails = async () => {
+      try {
+        setLoading(true);
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const token = userData?.authToken;
+        
+        if (!token) {
+          console.error('No auth token found');
+          return;
+        }
+
+        const response = await api.get(`/asset/detail/${id}`, {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const propertyDetails = response.data.data;
+        
+        if (propertyDetails) {
+          setPropertyData(propertyDetails);
+          setFormData({
+            zoneId: propertyDetails.zone_id,
+            wardId: propertyDetails.ward_id,
+            areaId: propertyDetails.area_id,
+            localityId: propertyDetails.loc_id,
+          });
+          const mobileNum = propertyDetails.mobile_number || '';
+          setMobileNumber(mobileNum);
+          validateMobileNumber(mobileNum);
+          setTotalArea(propertyDetails.build_area || '');
+        }
+      } catch (error) {
+        console.error('Error fetching property details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPropertyDetails();
   }, [id]);
 
-  const handleBack = () => navigate(-1);
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 3) {
+      alert('You can only upload up to 3 photos');
+      return;
+    }
+    setPropertyPhotos(files);
+  };
+
+  const handleOwnerUpdate = () => {
+    if (newOwnerName.trim()) {
+      // Here you can add the API call to update the owner name
+      console.log('Updating owner name to:', newOwnerName);
+      // After successful update:
+      setOwnerVerified(true);
+    }
+  };
+
+  const removePhoto = (index) => {
+    const updatedPhotos = [...propertyPhotos];
+    updatedPhotos.splice(index, 1);
+    setPropertyPhotos(updatedPhotos);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    let errorMessage = '';
   
+    // Owner Verification
+    if (!ownerVerified) {
+      errorMessage += '- Please verify the owner\n';
+    }
+  
+    // Mobile Number
+    if (!mobileNumber || !validateMobileNumber(mobileNumber)) {
+      errorMessage += '- Please enter a valid 10-digit mobile number\n';
+    }
+  
+    // Total Area
+    if (!totalArea) {
+      errorMessage += '- Total area is required\n';
+    }
+  
+    // Location
+    if (!userLocation) {
+      errorMessage += '- Please detect your current location\n';
+    }
+  
+    // Building Related Validations
+    if (isBuilding) {
+      // Building Type
+      if (!buildingType) {
+        errorMessage += '- Please select a building type\n';
+      }
+  
+      // Apartment Specific Validations
+      if (buildingType === 'apartment') {
+        if (!totalFloors) {
+          errorMessage += '- Please select total number of floors\n';
+        }
+        if (!apartmentFloor) {
+          errorMessage += '- Please select the floor number\n';
+        }
+        if (!propertyDetails.floorArea) {
+          errorMessage += '- Total floor area is required\n';
+        }
+        if (!propertyDetails.buildingUsage) {
+          errorMessage += '- Building usage is required\n';
+        }
+        if (!propertyDetails.ebNumber) {
+          errorMessage += '- EB number is required\n';
+        }
+        if (!propertyDetails.photos || propertyDetails.photos.length === 0) {
+          errorMessage += '- At least one property photo is required\n';
+        }
+        // Roof Structure for top floor
+        if (apartmentFloor === totalFloors && !buildingStructure) {
+          errorMessage += '- Roof structure is required for top floor\n';
+        }
+      }
+  
+      // Independent or Row House Validations
+      if (buildingType === 'independent' || buildingType === 'row_house') {
+        if (!buildingStructure) {
+          errorMessage += '- Building structure is required\n';
+        }
+        if (!propertyDetails.floorArea) {
+          errorMessage += '- Total floor area is required\n';
+        }
+        if (!propertyDetails.buildingUsage) {
+          errorMessage += '- Building usage is required\n';
+        }
+        if (!propertyDetails.ebNumber) {
+          errorMessage += '- EB number is required\n';
+        }
+        if (!propertyDetails.photos || propertyDetails.photos.length === 0) {
+          errorMessage += '- At least one property photo is required\n';
+        }
+      }
+    } else {
+      // Non-Building Validations
+      // if (!currentUsage) {
+      //   errorMessage += '- Please select current usage\n';
+      // }
+      // if (!currentStructure) {
+      //   errorMessage += '- Please select current structure\n';
+      // }
+      if (!propertyPhotos || propertyPhotos.length === 0) {
+        errorMessage += '- At least one property photo is required\n';
+      }
+    }
+  
+    // If there are any errors, show them and return true (has errors)
+    if (errorMessage) {
+      alert('Please fix the following issues:\n' + errorMessage);
+      setErrors(newErrors);
+      return true;
+    }
+  
+    // Return false if there are no errors
+    setErrors({});
+    return false;
+  };
+  const handleBack = () => navigate(-1);
+
   const handleSubmit = () => {
+    if (validateForm()) {
+      return; // Stop if there are validation errors
+    }
+  
+    // Create the submit data object (for console logging/debugging)
     const submitData = {
-      ...formData,
       propertyId: id,
       ownerVerified,
+      ownerName: ownerVerified ? propertyData.owner : newOwnerName,
       mobileNumber,
       totalArea,
-      buildingStructure,
-      totalFloors,
-      floorDetails,
+      latitude: userLocation ? userLocation[0] : null,
+      longitude: userLocation ? userLocation[1] : null,
+      isBuilding,
+      zoneId: formData.zoneId,
+      wardId: formData.wardId,
+      areaId: formData.areaId,
+      localityId: formData.localityId,
+      ...(isBuilding
+        ? {
+            buildingType,
+            buildingStructure: buildingType === 'apartment'
+              ? (apartmentFloor === totalFloors ? buildingStructure : null)
+              : buildingStructure,
+            totalFloors: buildingType === 'apartment' ? totalFloors : null,
+            apartmentFloor: buildingType === 'apartment' ? apartmentFloor : null,
+            ...propertyDetails,
+          }
+        : {
+            currentUsage,
+            currentStructure,
+            propertyPhotos,
+          }),
     };
+  
+    console.log('Form Data:', submitData); // For debugging
     
-    console.log('Submitting data:', submitData);
+    // Show success notification
     setShowSuccessNotification(true);
+    
+    // Close notification and navigate back after 2 seconds
     setTimeout(() => {
+      alert('Verification submitted successfully!');
       setShowSuccessNotification(false);
       navigate(-1);
     }, 2000);
   };
 
-  const handleFloorDetailsChange = (floorNumber, field, value) => {
-    setFloorDetails(prev => ({
+  const handlePropertyDetailsChange = (field, value) => {
+    setPropertyDetails((prev) => ({
       ...prev,
-      [floorNumber]: {
-        ...prev[floorNumber],
-        [field]: value
-      }
+      [field]: value,
     }));
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const floorNumbers = Array.from({ length: parseInt(totalFloors) + 1 }, (_, i) => i);
-
-  if (!propertyData) {
+  if (loading || !propertyData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent shadow-lg"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="bg-white border-b sticky top-0 z-10 shadow-md backdrop-blur-lg bg-white/90">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <button
                 onClick={handleBack}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors p-2 hover:bg-gray-100 rounded-lg group"
               >
-                <ArrowLeft className="h-6 w-6" />
+                <ArrowLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Property Details Verification</h1>
-            </div>
-            <div className="flex gap-4">
-             
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <LayoutDashboard className="h-7 w-7 text-sky-500" />
+                Property Details Verification
+              </h1>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Owner Verification */}
-        <DetailSection title="Owner Verification">
-          <div className="flex items-center gap-4 mb-4">
-            <User className="h-8 w-8 text-blue-600" />
-            <p className="text-2xl font-bold text-gray-900">{propertyData.Ownername}</p>
-          </div>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={ownerVerified}
-              onChange={(e) => setOwnerVerified(e.target.checked)}
-              className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-            />
-            <span className="text-gray-700">I confirm this is the correct owner name</span>
-          </label>
-        </DetailSection>
+      <div className="max-w-7xl mx-auto px-6 py-8">
 
-     {/* Property Information */}
+
+
+{/* Property Information */}
 <DetailSection title="Property Information">
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {/* Location Details */}
-    <div className="bg-white p-6 rounded-lg border hover:shadow-lg transition-shadow">
+  <button 
+    className="lg:hidden w-full flex items-center justify-between p-2 mb-3 text-gray-700 bg-gray-100 rounded-lg"
+    onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+  >
+    <span className="font-semibold">Property Details</span>
+    {isMobileExpanded ? (
+      <ChevronUp className="h-4 w-4 text-gray-500" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-gray-500" />
+    )}
+  </button>
 
-      <div className="grid gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Zone ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.zoneId}
-            onChange={(e) => handleInputChange('zoneId', e.target.value)}
-            placeholder="Enter Zone ID"
-          />
+  <div className={`${!isMobileExpanded ? 'hidden lg:block' : ''}`}>
+    <div className="bg-white rounded-lg border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      {/* Display of Property Data with Bolder Headings */}
+      {[
+        { label: 'Assessment ID', value: propertyData.asst_ref },
+        { label: 'Zone ID', value: propertyData.zone_id },
+        { label: 'Ward ID', value: propertyData.ward_id },
+        { label: 'Area ID', value: propertyData.area_id },
+        { label: 'Locality ID', value: propertyData.loc_id },
+        { label: 'Zone', value: propertyData.zone_name },
+        { label: 'Ward', value: propertyData.ward_name },
+        { label: 'Area', value: propertyData.area_name },
+        { label: 'Street', value: propertyData.street_name },
+        { label: 'Locality', value: propertyData.loc_name },
+        { label: 'Door No', value: propertyData.new_door },
+        { label: 'Usage', value: propertyData.usage_type },
+        { label: 'Build Area', value: `${propertyData.build_area} sq.ft` }
+      ].map((field, index) => (
+        <div key={index} className="space-y-0.5">
+          <p className="text-sm font-bold text-gray-700">{field.label}</p>
+          <p className="text-xs font-medium text-gray-500">{field.value}</p>
         </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Ward ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.wardId}
-            onChange={(e) => handleInputChange('wardId', e.target.value)}
-            placeholder="Enter Ward ID"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Area ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.areaId}
-            onChange={(e) => handleInputChange('areaId', e.target.value)}
-            placeholder="Enter Area ID"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Locality ID
-          </label>
-          <input
-            type="text"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-            value={formData.localityId}
-            onChange={(e) => handleInputChange('localityId', e.target.value)}
-            placeholder="Enter Locality ID"
-          />
-        </div>
+      ))}
+    </div>
+  </div>
+</DetailSection>
+
+
+{/* Owner Verification */}
+<DetailSection title="Owner Verification">
+  <div className="space-y-4">
+    <div className="flex items-center gap-4 bg-sky-50 p-4 rounded-xl">
+      <div className="h-12 w-12 bg-sky-500 rounded-full flex items-center justify-center">
+        <User className="h-6 w-6 text-white" />
+      </div>
+      <div>
+        <h3 className="text-xl font-semibold text-gray-800">{propertyData.owner}</h3>
       </div>
     </div>
-            
-            {/* Contact Information */}
-            <div className="space-y-6">
-           
-              <div className="grid gap-4">
-                <DetailItem label="Phone Number" value={propertyData.PhoneNumber} icon={Phone} />
-                <DetailItem label="Street Name" value={propertyData.StreetName} />
-                <DetailItem label="Locality Name" value={propertyData.LocalityName} />
-              </div>
-            </div>
 
-            {/* Property Details */}
-            <div className="space-y-6">
-     
-              <div className="grid gap-4">
-                <DetailItem 
-                  label="Total Build Area" 
-                  value={`${propertyData.TotalBuildArea} sq.ft`} 
-                />
-                <DetailItem label="Usage Type" value={propertyData.UsageName} />
-              </div>
-            </div>
+    <div className="space-y-4 max-w-full md:max-w-[400px] md:mt-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-600 ml-2">Is this owner name correct?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setOwnerVerified(true);
+                setNewOwnerName(''); // Clear any previous input if "Yes" is clicked
+              }}
+              className="px-4 py-1 text-sm font-medium text-white bg-green-500 rounded-lg"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => setOwnerVerified(false)}
+              className="px-4 py-1 text-sm font-medium text-white bg-red-500 rounded-lg"
+            >
+              No
+            </button>
           </div>
-        </DetailSection>
+        </div>
+      </div>
 
-        {/* Additional Details */}
-        <DetailSection title="Additional Property Details">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mobile Number
+      {!ownerVerified && (
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mt-4">
+          <input
+            type="text"
+            value={newOwnerName}
+            onChange={(e) => setNewOwnerName(e.target.value)}
+            className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+            placeholder="Enter correct owner name"
+          />
+        </div>
+      )}
+    </div>
+  </div>
+</DetailSection>
+
+
+        {/* Survey Details Section */}
+        <DetailSection title="Survey Details">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Mobile Number As Per Property Tax Records
               </label>
               <input
                 type="tel"
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                pattern="[0-9]{10}"
+                className={`w-full p-4 border ${!isMobileValid ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 ${
+                  isMobileValid ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-red-500 focus:border-red-500'
+                } transition-all duration-300`}
                 value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setMobileNumber(value);
+                  if (value.length === 10) {
+                    validateMobileNumber(value);
+                  } else {
+                    setIsMobileValid(false);
+                  }
+                }}
+                onBlur={() => {
+                  validateMobileNumber(mobileNumber);
+                  setShowMobileError(true);
+                }}
+                required
               />
+              {(!isMobileValid && showMobileError) && (
+                <p className="text-red-500 text-sm mt-1">Please enter a valid 10-digit mobile number</p>
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
                 Total Area (sq ft)
               </label>
               <input
                 type="number"
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
                 value={totalArea}
                 onChange={(e) => setTotalArea(e.target.value)}
+                required
+              />
+              {errors.totalArea && (
+                <p className="text-red-500 text-sm mt-1">{errors.totalArea}</p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Assessment ID
+              </label>
+              <input
+                type="text"
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 transition-all duration-300"
+                value={propertyData.asst_id}
+                readOnly
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Building Structure
+            {/* Building Type Selection */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Is this a Building?
               </label>
               <select
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                value={buildingStructure}
-                onChange={(e) => setBuildingStructure(e.target.value)}
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                value={isBuilding.toString()}
+                onChange={(e) => setIsBuilding(e.target.value === 'true')}
+                required
               >
-                <option value="">Select Type</option>
-                <option value="ac">AC Sheet</option>
-                <option value="tatched">Tatched</option>
-                <option value="rcc">RCC Sheet</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Total Number of Floors
-              </label>
-              <select
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                value={totalFloors}
-                onChange={(e) => setTotalFloors(e.target.value)}
-              >
-                {Array.from({ length: 11 }, (_, i) => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </DetailSection>
-
-        {/* Floor Details */}
-        <DetailSection title="Floor-wise Details">
-          <div className="grid grid-cols-1 gap-6">
-            {floorNumbers.map((floorNumber) => (
-              <FloorDetailsForm
-                key={floorNumber}
-                floorNumber={floorNumber}
-                onChange={handleFloorDetailsChange}
-                data={floorDetails[floorNumber] || {}}
-              />
-            ))}
-          </div>
-        </DetailSection>
-
-        {/* Submit Button - Centered */}
-        <div className="flex justify-center mt-8 mb-8">
-          <button
-            onClick={handleSubmit}
-            className="px-8 py-3 rounded-lg flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors text-lg font-medium"
+            {isBuilding ? (
+  <>
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Building Type
+      </label>
+      <select
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={buildingType}
+        onChange={(e) => {
+          setBuildingType(e.target.value);
+          setTotalFloors('');
+          setApartmentFloor('');
+        }}
+        required
+      >
+        <option value="">Select Type</option>
+        <option value="apartment">Apartment</option>
+        <option value="row_house">Row House</option>
+        <option value="independent">Independent House</option>
+      </select>
+      {errors.buildingType && (
+        <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
+      )}
+    </div>
+    
+    {buildingType === 'apartment' && (
+      <>
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700">
+            Total Number of Floors in Apartment
+          </label>
+          <select
+            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+            value={totalFloors}
+            onChange={(e) => {
+              setTotalFloors(e.target.value);
+              setApartmentFloor(''); // Reset floor selection when total floors changes
+            }}
+            required
           >
-            <Check className="h-6 w-6" />
-            Submit
-          </button>
+            <option value="">Select Total Floors</option>
+            {[...Array(10)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {i + 1} Floor{i > 0 ? 's' : ''}
+              </option>
+            ))}
+          </select>
         </div>
-      
-     {/* Success Notification Modal */}
-     {showSuccessNotification && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-lg w-96">
-              <div className="flex items-center justify-between px-6 py-4 border-b">
-                <h3 className="text-xl font-semibold text-gray-800">Success</h3>
+
+        {totalFloors && (
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-gray-700">
+              In which floor property is present?
+            </label>
+            <select
+              className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+              value={apartmentFloor}
+              onChange={(e) => setApartmentFloor(e.target.value)}
+              required
+            >
+              <option value="">Select Floor</option>
+              <option value="0">Ground Floor</option>
+              {[...Array(parseInt(totalFloors))].map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}{i + 1 === 1 ? 'st' : i + 1 === 2 ? 'nd' : i + 1 === 3 ? 'rd' : 'th'} Floor
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Show Roof Structure only if selected floor equals total floors */}
+        {totalFloors && apartmentFloor === totalFloors && (
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-gray-700">
+              Roof Structure
+            </label>
+            <select
+              className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+              value={buildingStructure}
+              onChange={(e) => setBuildingStructure(e.target.value)}
+              required
+            >
+              <option value="">Select Type</option>
+              <option value="ac">AC Sheet</option>
+              <option value="thatched">Thatched</option>
+              <option value="rcc">RCC Sheet</option>
+            </select>
+            {errors.buildingStructure && (
+              <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+            )}
+          </div>
+        )}
+      </>
+    )}
+
+    {/* Show Roof Structure directly for independent and row house */}
+    {(buildingType === 'independent' || buildingType === 'row_house') && (
+      <div className="space-y-3">
+        <label className="block text-sm font-semibold text-gray-700">
+          Roof Structure
+        </label>
+        <select
+          className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+          value={buildingStructure}
+          onChange={(e) => setBuildingStructure(e.target.value)}
+          required
+        >
+          <option value="">Select Type</option>
+          <option value="ac">AC Sheet</option>
+          <option value="thatched">Thatched</option>
+          <option value="rcc">RCC Sheet</option>
+        </select>
+        {errors.buildingStructure && (
+          <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+        )}
+      </div>
+    )}
+  </>
+) : (
+  <>
+    {/* <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Current Usage
+      </label>
+      <select
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={currentUsage}
+        onChange={(e) => setCurrentUsage(e.target.value)}
+        required
+      >
+        <option value="">Select Usage</option>
+        <option value="parking">Parking</option>
+        <option value="garden">Garden</option>
+        <option value="playground">Playground</option>
+        <option value="vacant">Vacant Land</option>
+      </select>
+      {errors.currentUsage && (
+        <p className="text-red-500 text-sm mt-1">{errors.currentUsage}</p>
+      )}
+    </div>
+
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Current Structure
+      </label>
+      <select
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={currentStructure}
+        onChange={(e) => setCurrentStructure(e.target.value)}
+        required
+      >
+        <option value="">Select Structure</option>
+        <option value="open">Open Land</option>
+        <option value="fenced">Fenced</option>
+        <option value="paved">Paved</option>
+        <option value="landscaped">Landscaped</option>
+      </select>
+      {errors.currentStructure && (
+        <p className="text-red-500 text-sm mt-1">{errors.currentStructure}</p>
+      )}
+    </div> */}
+
+    {/* Added EB Number field */}
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        EB Number
+      </label>
+      <input
+        type="text"
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={propertyDetails.ebNumber || ''}
+        onChange={(e) => handlePropertyDetailsChange('ebNumber', e.target.value)}
+        required
+      />
+      {errors.ebNumber && (
+        <p className="text-red-500 text-sm mt-1">{errors.ebNumber}</p>
+      )}
+    </div>
+
+                {/* Photo Upload for Non-Building */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Property Photos (1-3)
+                  </label>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        max="3"
+                      />
+                      <Camera className="h-8 w-8 text-gray-400" />
+                    </label>
+                    {propertyPhotos.map((photo, index) => (
+                      <div key={index} className="relative w-32 h-32">
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt={`Property photo ${index + 1}`}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        <button
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.propertyPhotos && (
+                    <p className="text-red-500 text-sm mt-1">{errors.propertyPhotos}</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </DetailSection>
+
+    {/* Property Details Section - Only show if isBuilding is true */}
+{isBuilding && (
+  <DetailSection title="Property Details as Observed">
+    <PropertyDetailsForm
+      onChange={handlePropertyDetailsChange}
+      data={propertyDetails}
+    />
+  </DetailSection>
+)}
+
+{/* Location Map Section */}
+<DetailSection title="Location Verification">
+  <LocationMap
+    onLocationSelect={(location) => {
+      setUserLocation(location);
+      console.log("Selected location:", location);
+    }}
+  />
+</DetailSection>
+
+{/* Submit Button */}
+<div className="flex justify-center mt-12 mb-12">
+<button
+  onClick={handleSubmit}
+  className="px-5 py-2 rounded-xl flex items-center gap-3 bg-sky-600 text-white 
+  hover:bg-sky-700 transition-all duration-300 transform hover:-translate-y-1 
+  hover:shadow-lg text-lg font-semibold group"
+>
+  <Check className="h-6 w-6 group-hover:scale-110 transition-transform" />
+  Submit Verification
+</button>
+</div>
+
+
+        {/* Success Notification Modal */}
+        {showSuccessNotification && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl w-96 transform transition-all duration-300 animate-scaleIn">
+              <div className="flex items-center justify-between px-8 py-6 border-b">
+                <h3 className="text-2xl font-bold text-gray-800">Success</h3>
                 <button
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                   onClick={() => setShowSuccessNotification(false)}
                 >
                   <svg
@@ -397,31 +908,34 @@ const VerificationPage = () => {
                   </svg>
                 </button>
               </div>
-              <div className="px-6 py-8">
-                <div className="flex items-center justify-center mb-6">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-16 w-16 text-green-500"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+              <div className="px-8 py-10">
+                <div className="flex items-center justify-center mb-8">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-100 rounded-full animate-ping"></div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-20 w-20 text-green-500 relative z-10"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                <p className="text-lg text-center text-gray-700">
+                <p className="text-xl text-center text-gray-700 font-medium">
                   Your data has been saved successfully!
                 </p>
               </div>
-              <div className="px-6 py-4 bg-gray-100 text-right rounded-b-lg">
+              <div className="px-8 py-6 bg-gray-50 rounded-b-2xl flex justify-end">
                 <button
-                  className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
+                  className="px-6 py-3 text-white bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors duration-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   onClick={() => setShowSuccessNotification(false)}
                 >
-                  OK
+                  Close
                 </button>
               </div>
             </div>

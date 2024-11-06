@@ -10,7 +10,6 @@ const Header = ({ setIsLoggedIn }) => {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [userData, setUserData] = useState(null);
 
-  // Check login status on mount and whenever localStorage changes
   useEffect(() => {
     const checkLoginStatus = () => {
       const authToken = localStorage.getItem('authToken');
@@ -29,13 +28,10 @@ const Header = ({ setIsLoggedIn }) => {
     };
 
     checkLoginStatus();
-
-    // Listen for storage changes
     window.addEventListener('storage', checkLoginStatus);
     return () => window.removeEventListener('storage', checkLoginStatus);
   }, []);
 
-  // Clock update effect
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -43,7 +39,6 @@ const Header = ({ setIsLoggedIn }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userDropdownOpen && !event.target.closest('.user-dropdown')) {
@@ -81,21 +76,14 @@ const Header = ({ setIsLoggedIn }) => {
   };
 
   const handleLogout = () => {
-    // Clear all auth-related items from localStorage
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     localStorage.removeItem('rememberedUser');
     localStorage.removeItem('sessionData');
     localStorage.removeItem('lastLoginTime');
-    
-    // Update global auth state
     setIsLoggedIn(false);
-    
-    // Close menus
     setUserDropdownOpen(false);
     setIsMenuOpen(false);
-    
-    // Navigate to login
     navigate('/login', { replace: true });
   };
 
@@ -105,7 +93,7 @@ const Header = ({ setIsLoggedIn }) => {
 
   return (
     <header className="relative z-50">
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 py-4">
+      <div className="bg-gradient-to-r from-[#75d1e3] via-[#67c3d5] to-[#75d1e3] py-4">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           {/* Left Section: Logo and Title */}
           <div className="flex items-center space-x-6">
@@ -115,9 +103,9 @@ const Header = ({ setIsLoggedIn }) => {
               className="h-14 w-14 object-contain cursor-pointer transition-transform hover:scale-105"
               onClick={handleHomeClick}
             />
-            <div className="text-white border-l-2 border-white/20 pl-6">
+            <div className="text-black border-l-2 border-black/20 pl-6">
               <h1 className="text-2xl font-bold tracking-wide">Government of Tamil Nadu</h1>
-              <p className="text-sm text-white/90 mt-1">e-Governance Portal</p>
+              <p className="text-sm text-black/90 mt-1">e-Governance Portal</p>
             </div>
           </div>
 
@@ -126,8 +114,10 @@ const Header = ({ setIsLoggedIn }) => {
             <nav className="flex items-center space-x-8">
               <button 
                 onClick={handleHomeClick}
-                className={`flex items-center space-x-2 text-white transition-colors ${
-                  isActive('/home') ? 'text-blue-200' : 'hover:text-blue-200'
+                className={`flex items-center space-x-2 text-black transition-colors ${
+                  isActive('/home') 
+                    ? 'border-b-2 border-black font-semibold' 
+                    : 'hover:text-black/80'
                 }`}
               >
                 <Home className="h-5 w-5" />
@@ -136,8 +126,10 @@ const Header = ({ setIsLoggedIn }) => {
 
               <button 
                 onClick={handleSurveyClick}
-                className={`flex items-center space-x-2 text-white transition-colors ${
-                  isActive('/filters') ? 'text-blue-200' : 'hover:text-blue-200'
+                className={`flex items-center space-x-2 text-black transition-colors ${
+                  isActive('/filters') 
+                    ? 'border-b-2 border-black font-semibold' 
+                    : 'hover:text-black/80'
                 }`}
               >
                 <ClipboardList className="h-5 w-5" />
@@ -147,7 +139,7 @@ const Header = ({ setIsLoggedIn }) => {
               <div className="relative user-dropdown">
                 <button 
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-2 text-white hover:text-blue-200 font-medium"
+                  className="flex items-center space-x-2 text-black hover:text-black/80 font-medium"
                 >
                   <UserCircle className="h-5 w-5" />
                   <span>{userData?.name || 'User'}</span>
@@ -162,9 +154,9 @@ const Header = ({ setIsLoggedIn }) => {
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden">
                     <button 
                       onClick={handleProfileClick}
-                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                      className="flex items-center w-full px-4 py-3 text-sm text-black hover:bg-[#75d1e3]/10 transition-colors"
                     >
-                      <UserCircle className="h-4 w-4 mr-2" />
+                      <UserCircle className="h-4 w-4 mr-2 text-black" />
                       Profile
                     </button>
                     <button 
@@ -179,11 +171,11 @@ const Header = ({ setIsLoggedIn }) => {
               </div>
             </nav>
 
-            <div className="flex items-center space-x-6 pl-8 border-l border-white/20">
-              <div className="text-white/90 text-sm font-medium">
+            <div className="flex items-center space-x-6 pl-8 border-l border-black/20">
+              <div className="text-black text-sm font-medium">
                 {formatTime(currentTime)}
               </div>
-              <div className="text-white/90 text-sm font-medium">
+              <div className="text-black text-sm font-medium">
                 {currentTime.toLocaleDateString('en-US', { 
                   day: '2-digit',
                   month: 'short',
@@ -197,7 +189,7 @@ const Header = ({ setIsLoggedIn }) => {
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 text-white hover:text-blue-200 transition-colors focus:outline-none"
+              className="p-2 text-black hover:text-black/80 transition-colors focus:outline-none"
               aria-label="Menu"
             >
               {isMenuOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
@@ -220,7 +212,7 @@ const Header = ({ setIsLoggedIn }) => {
           onClick={e => e.stopPropagation()}
         >
           {/* Mobile Menu Header */}
-          <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
+          <div className="bg-[#75d1e3] text-black p-4 flex justify-between items-center">
             <div className="flex items-center space-x-3">
               <img 
                 src="/images/tnlogo.png"
@@ -231,7 +223,7 @@ const Header = ({ setIsLoggedIn }) => {
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="p-2 hover:bg-blue-800 rounded-full transition-colors focus:outline-none"
+              className="p-2 hover:bg-[#67c3d5] rounded-full transition-colors focus:outline-none"
             >
               <X className="h-5 w-5" />
             </button>
@@ -239,7 +231,7 @@ const Header = ({ setIsLoggedIn }) => {
 
           {/* Time and Date Section */}
           <div className="bg-gray-50 p-4 border-b">
-            <div className="flex justify-between items-center text-sm text-gray-600">
+            <div className="flex justify-between items-center text-sm text-black">
               <div className="font-medium">{formatTime(currentTime)}</div>
               <div className="font-medium">
                 {currentTime.toLocaleDateString('en-US', { 
@@ -257,8 +249,8 @@ const Header = ({ setIsLoggedIn }) => {
               onClick={handleHomeClick}
               className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
                 isActive('/home') 
-                  ? 'bg-blue-50 text-blue-600' 
-                  : 'text-gray-700 hover:bg-blue-50'
+                  ? 'bg-[#75d1e3]/10 text-black font-semibold border-l-4 border-[#75d1e3]' 
+                  : 'text-black hover:bg-[#75d1e3]/10'
               }`}
             >
               <Home className="h-5 w-5 mr-3" />
@@ -269,8 +261,8 @@ const Header = ({ setIsLoggedIn }) => {
               onClick={handleSurveyClick}
               className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
                 isActive('/filters') 
-                  ? 'bg-blue-50 text-blue-600' 
-                  : 'text-gray-700 hover:bg-blue-50'
+                  ? 'bg-[#75d1e3]/10 text-black font-semibold border-l-4 border-[#75d1e3]' 
+                  : 'text-black hover:bg-[#75d1e3]/10'
               }`}
             >
               <ClipboardList className="h-5 w-5 mr-3" />
@@ -278,14 +270,14 @@ const Header = ({ setIsLoggedIn }) => {
             </button>
 
             <div className="border-t border-gray-200 my-4 pt-4">
-              <div className="px-4 text-sm text-gray-500 mb-2">
+              <div className="px-4 text-sm text-black mb-2">
                 Logged in as {userData?.name || 'User'}
               </div>
               <button 
                 onClick={handleProfileClick}
-                className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors"
+                className="w-full flex items-center px-4 py-3 text-black hover:bg-[#75d1e3]/10 rounded-lg transition-colors"
               >
-                <UserCircle className="h-5 w-5 mr-3 text-gray-500" />
+                <UserCircle className="h-5 w-5 mr-3 text-black" />
                 <span className="font-medium">Profile</span>
               </button>
               
@@ -301,10 +293,10 @@ const Header = ({ setIsLoggedIn }) => {
 
           {/* Footer */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-50 border-t text-center">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-black">
               Government of Tamil Nadu
             </div>
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-black/70">
               e-Governance Portal
             </div>
           </div>

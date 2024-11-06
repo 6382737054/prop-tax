@@ -10,8 +10,7 @@ import './App.css';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     try {
-      const authToken = localStorage.getItem('authToken');
-      return !!authToken;
+      return checkTokenValidity();
     } catch {
       return false;
     }
@@ -19,32 +18,53 @@ function App() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = () => {
+  // Function to check token validity
+  const checkTokenValidity = () => {
     try {
       const authToken = localStorage.getItem('authToken');
+      const sessionData = JSON.parse(localStorage.getItem('sessionData') || '{}');
       
-      if (authToken) {
-        if (!isLoggedIn) {
-          setIsLoggedIn(true);
-        }
-        return true;
-      } else {
-        if (isLoggedIn) {
-          setIsLoggedIn(false);
-        }
+      if (!authToken || !sessionData.timestamp) {
+        handleLogout();
         return false;
       }
+
+      // Check if token has expired (7 days)
+      const tokenTimestamp = new Date(sessionData.timestamp);
+      const expirationTime = new Date(tokenTimestamp);
+      expirationTime.setHours(expirationTime.getHours() + 24 * 7); // 7 days
+
+      if (new Date() >= expirationTime) {
+        handleLogout();
+        return false;
+      }
+
+      return true;
     } catch (error) {
-      console.error('Error checking auth:', error);
-      setIsLoggedIn(false);
+      console.error('Error checking token validity:', error);
+      handleLogout();
       return false;
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('sessionData');
+    localStorage.removeItem('userData');
+    // Don't remove rememberedUser as it's used for the "Remember Me" feature
+    setIsLoggedIn(false);
+  };
+
+  const checkAuth = () => {
+    const isValid = checkTokenValidity();
+    setIsLoggedIn(isValid);
+    return isValid;
   };
 
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        await checkAuth();
+        checkAuth();
       } finally {
         setIsLoading(false);
       }
@@ -52,8 +72,13 @@ function App() {
 
     initializeAuth();
 
+    // Set up periodic token check (every minute)
+    const tokenCheckInterval = setInterval(() => {
+      checkAuth();
+    }, 60000); // Check every minute
+
     const handleStorageChange = (e) => {
-      if (e.key === 'authToken') {
+      if (e.key === 'authToken' || e.key === 'sessionData') {
         checkAuth();
       }
     };
@@ -61,6 +86,7 @@ function App() {
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
+      clearInterval(tokenCheckInterval);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -75,12 +101,13 @@ function App() {
   );
 
   const ProtectedRoute = ({ children }) => {
-    if (isLoading) {
-      return <LoadingSpinner />;
+    // Check token validity on each protected route access
+    if (!checkTokenValidity()) {
+      return <Navigate to="/login" replace />;
     }
 
-    if (!isLoggedIn) {
-      return <Navigate to="/login" replace />;
+    if (isLoading) {
+      return <LoadingSpinner />;
     }
 
     return children;

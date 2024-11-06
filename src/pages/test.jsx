@@ -9,7 +9,10 @@ import {
   AlertCircle,
   Table,
   Phone,
-  User
+  User,
+  LayoutDashboard,
+  ClipboardList,
+  CheckCircle
 } from 'lucide-react';
 import api from '../apiConfig/api';
 import { Link } from 'react-router-dom';
@@ -22,8 +25,8 @@ const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
     </label>
     <div className="relative">
       {Icon && (
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none group-hover:text-blue-500 transition-colors">
-          <Icon className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none group-hover:text-sky-500 transition-colors">
+          <Icon className="h-5 w-5 text-gray-400 group-hover:text-sky-500 transition-colors" />
         </div>
       )}
       <select
@@ -39,7 +42,7 @@ const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
         ))}
       </select>
       <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        <ChevronDown className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+        <ChevronDown className="h-5 w-5 text-gray-400 group-hover:text-sky-500 transition-colors" />
       </div>
     </div>
     {error && (
@@ -51,8 +54,52 @@ const SelectField = ({ label, id, options, error, icon: Icon, ...props }) => (
   </div>
 );
 
+// Tab component
+const Tab = ({ active, icon: Icon, label, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-6 py-4 font-medium transition-all duration-200 border-b-2 ${
+      active 
+        ? 'text-sky-600 border-sky-600' 
+        : 'text-gray-500 border-transparent hover:text-sky-600 hover:border-blue-300'
+    }`}
+  >
+    <Icon className="h-5 w-5" />
+    {label}
+  </button>
+);
+
+// Dummy data for completed table
+const completedData = [
+  {
+    id: 1,
+    new_door: "123-A",
+    owner: "John Doe",
+    build_area: "1200",
+    status: "Completed",
+    completion_date: "2024-03-15"
+  },
+  {
+    id: 2,
+    new_door: "456-B",
+    owner: "Jane Smith",
+    build_area: "1500",
+    status: "Completed",
+    completion_date: "2024-03-14"
+  },
+  {
+    id: 3,
+    new_door: "789-C",
+    owner: "Robert Johnson",
+    build_area: "1800",
+    status: "Completed",
+    completion_date: "2024-03-13"
+  }
+];
+
 const SurveyForm = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('pending');
   const [formData, setFormData] = useState({
     ward_id: '',
     area_id: '',
@@ -68,10 +115,9 @@ const SurveyForm = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [userOrgName, setUserOrgName] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(() => {
-    fetchUserDataAndWards();
-  }, []);
+
 
   const fetchUserDataAndWards = async () => {
     try {
@@ -114,7 +160,7 @@ const SurveyForm = () => {
       }
 
       const orgName = userData?.data?.resp?.org;
-      const response = await api.get(`api/v1/master/${orgName}/${wardId}`, {
+      const response = await api.get(`/master/${orgName}/${wardId}`, {
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
@@ -147,7 +193,7 @@ const SurveyForm = () => {
       }
 
       const orgName = userData?.data?.resp?.org;
-      const response = await api.get(`api/v1/master/${orgName}/${wardId}/${areaId}`, {
+      const response = await api.get(`/master/${orgName}/${wardId}/${areaId}`, {
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
@@ -180,7 +226,7 @@ const SurveyForm = () => {
       }
 
       const orgName = userData?.data?.resp?.org;
-      const response = await api.get(`api/v1/master/${orgName}/${wardId}/${areaId}/${localityId}`, {
+      const response = await api.get(`/master/${orgName}/${wardId}/${areaId}/${localityId}`, {
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
@@ -200,16 +246,12 @@ const SurveyForm = () => {
     }
   };
 
-  // Key change: Modified handleInputChange to properly handle dropdown changes
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    
-    // Update form data first
     setFormData(prevData => {
       const newData = { ...prevData };
       newData[name] = value;
       
-      // Reset dependent fields based on which field changed
       switch (name) {
         case 'ward_id':
           newData.area_id = '';
@@ -228,21 +270,16 @@ const SurveyForm = () => {
           newData.street_id = '';
           if (value) fetchStreets(newData.ward_id, newData.area_id, value);
           break;
-          
-        default:
-          break;
       }
       
       return newData;
     });
 
-    // Clear any errors for the changed field
     setFormErrors(prev => ({
       ...prev,
       [name]: ''
     }));
 
-    // Clear search results when changing any dropdown
     setSearchResults([]);
   };
 
@@ -258,7 +295,7 @@ const SurveyForm = () => {
   };
 
   const handleSearch = async (e) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
     
     if (!validateForm()) return;
 
@@ -266,13 +303,15 @@ const SurveyForm = () => {
       setSearchLoading(true);
       const userData = JSON.parse(localStorage.getItem('userData'));
       const token = userData?.authToken;
+      setSearchLoading(true);
+      setHasSearched(true);
       
       if (!token) {
         console.error('No auth token found');
         return;
       }
 
-      const url = `/api/v1/asset?org_name=${encodeURIComponent(userOrgName)}&ward_id=${formData.ward_id}&area_id=${formData.area_id}&loc_id=${formData.locality_id}&street_id=${formData.street_id}`;
+      const url = `/asset?org_name=${encodeURIComponent(userOrgName)}&ward_id=${formData.ward_id}&area_id=${formData.area_id}&loc_id=${formData.locality_id}&street_id=${formData.street_id}`;
 
       const response = await api.get(url, {
         headers: {
@@ -290,6 +329,10 @@ const SurveyForm = () => {
     }
   };
 
+  useEffect(() => {
+    fetchUserDataAndWards();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -301,135 +344,175 @@ const SurveyForm = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-1">
-  <div className="w-full space-y-6">
-        <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
-          <div className="mb-6">
-          
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <SelectField
-              label="Ward"
-              id="ward_id"
-              name="ward_id"
-              value={formData.ward_id}
-              onChange={handleInputChange}
-              options={userWards}
-              error={formErrors.ward_id}
-              icon={Home}
-              disabled={loading}
-            />
-            <SelectField
-              label="Area Name"
-              id="area_id"
-              name="area_id"
-              value={formData.area_id}
-              onChange={handleInputChange}
-              options={userAreas}
-              error={formErrors.area_id}
-              disabled={!formData.ward_id}
-              icon={Building}
-            />
-            <SelectField
-              label="Locality Name"
-              id="locality_id"
-              name="locality_id"
-              value={formData.locality_id}
-              onChange={handleInputChange}
-              options={userLocalities}
-              error={formErrors.locality_id}
-              disabled={!formData.area_id}
-              icon={MapPin}
-            />
-            <SelectField
-              label="Street Name"
-              id="street_id"
-              name="street_id"
-              value={formData.street_id}
-              onChange={handleInputChange}
-              options={userStreets}
-              error={formErrors.street_id}
-              disabled={!formData.locality_id}
-              icon={MapPin}
-            />
-            <div className="flex items-end">
-              <button
-                onClick={handleSearch}
-                type="button"
-                disabled={loading || searchLoading}
-                className="w-full px-8 py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
+  const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+  const organizationName = userData?.data?.resp?.org || 'Organization';
+
+  const renderTable = (data) => (
+    <table className="w-full">
+      <thead>
+        <tr className="bg-gray-100 rounded-lg">
+          <th className="text-left font-semibold px-6 py-4 border-b w-20">S.No</th>
+          <th className="text-left font-semibold px-6 py-4 border-b w-1/4">Door Number</th>
+          <th className="text-left font-semibold px-6 py-4 border-b w-1/3">Owner Name</th>
+          <th className="text-left font-semibold px-6 py-4 border-b w-1/4">Total Area (Sq.ft)</th>
+          {activeTab === 'completed' && (
+            <th className="text-left font-semibold px-6 py-4 border-b w-1/4">Completion Date</th>
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((item, index) => (
+          <tr key={index} className="border-b hover:bg-gray-50">
+            <td className="px-6 py-4 align-middle">
+              {String(index + 1).padStart(2, '0')}
+            </td>
+            <td className="px-6 py-4 align-middle">
+              <Link 
+                to={`/verify/${item.id}`}
+                className="text-sky-600 hover:text-sky-800 hover:underline cursor-pointer"
               >
-                {searchLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                ) : (
-                  <Search className="h-5 w-5" />
-                )}
-                Search
-              </button>
+                {item.new_door || 'N/A'}
+              </Link>
+            </td>
+            <td className="px-6 py-4 align-middle">{item.owner || 'N/A'}</td>
+            <td className="px-6 py-4 align-middle">
+              {item.build_area ? `${item.build_area} sq.ft` : 'N/A'}
+            </td>
+            {activeTab === 'completed' && (
+              <td className="px-6 py-4 align-middle">{item.completion_date || 'N/A'}</td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white shadow-xl rounded-2xl border border-gray-100">
+          {/* Organization and Zone Info */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200">
+            <div className="flex items-center gap-3 p-6">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Building className="h-5 w-5 text-[#75d1e3]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">{organizationName}</h3>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-6">
+            <div className="p-2 bg-[#75d1e3]/10 rounded-lg">
+  <LayoutDashboard className="h-5 w-5 text-[#75d1e3]" />
+</div>
+<div>
+                <h3 className="text-lg font-semibold text-gray-800">Zone 1</h3>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Content */}
+          <div className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <SelectField
+                label="Ward"
+                id="ward_id"
+                name="ward_id"
+                value={formData.ward_id}
+                onChange={handleInputChange}
+                options={userWards}
+                error={formErrors.ward_id}
+                icon={Home}
+                disabled={loading}
+              />
+              <SelectField
+                label="Area Name"
+                id="area_id"
+                name="area_id"
+                value={formData.area_id}
+                onChange={handleInputChange}
+                options={userAreas}
+                error={formErrors.area_id}
+                disabled={!formData.ward_id}
+                icon={Building}
+              />
+              <SelectField
+                label="Locality Name"
+                id="locality_id"
+                name="locality_id"
+                value={formData.locality_id}
+                onChange={handleInputChange}
+                options={userLocalities}
+                error={formErrors.locality_id}
+                disabled={!formData.area_id}
+                icon={MapPin}
+              />
+              <SelectField
+                label="Street Name"
+                id="street_id"
+                name="street_id"
+                value={formData.street_id}
+                onChange={handleInputChange}
+                options={userStreets}
+                error={formErrors.street_id}
+                disabled={!formData.locality_id}
+                icon={MapPin}
+              />
+              <div className="flex items-end">
+              <button
+  onClick={handleSearch}
+  type="button"
+  disabled={loading || searchLoading}
+  className="w-full px-8 py-3.5 bg-[#75d1e3] text-white rounded-xl hover:bg-[#5dbdd0] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
+>
+  {searchLoading ? (
+    <div className="animate-spin rounded-full h-5 w-5 border-b-2  border-white"></div>
+  ) : (
+    <Search className="h-5 w-5 color" />
+  )}
+  Search
+</button>
+              </div>
             </div>
           </div>
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="bg-white shadow-md rounded-lg">
-            <div className="px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold">
-                Search Results ({searchResults.length})
-              </h3>
+        {/* Tabs and Results Section */}
+        {(searchResults.length > 0 || activeTab === 'completed') && (
+          <div className="bg-white shadow-md rounded-lg mt-6">
+            <div className="border-b border-gray-200">
+              <div className="flex">
+                <Tab 
+                  active={activeTab === 'pending'} 
+                  icon={ClipboardList}
+                  label="Pending"
+                  onClick={() => setActiveTab('pending')}
+                />
+                <Tab 
+                  active={activeTab === 'completed'} 
+                  icon={CheckCircle}
+                  label="Completed"
+                  onClick={() => setActiveTab('completed')}
+                />
+              </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="text-left font-semibold px-6 py-4 border-b w-20">
-                      S.No
-                    </th>
-                    <th className="text-left font-semibold px-6 py-4 border-b w-1/4">
-                      Door Number
-                    </th>
-                    <th className="text-left font-semibold px-6 py-4 border-b w-1/3">
-                      Owner Name
-                    </th>
-                    <th className="text-left font-semibold px-6 py-4 border-b w-1/4">
-                      Total Area (Sq.ft)
-                      </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {searchResults.map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 align-middle">
-                        {String(index + 1).padStart(2, '0')}
-                      </td>
-                      <td className="px-6 py-4 align-middle">
-                        <Link 
-                          to={`/verify/${item.id}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                        >
-                          {item.new_door || 'N/A'}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 align-middle">
-                        {item.owner || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 align-middle">
-                        {item.build_area ? `${item.build_area} sq.ft` : 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="min-w-full p-6">
+                {activeTab === 'pending' ? (
+                  renderTable(searchResults)
+                ) : (
+                  renderTable(completedData)
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {searchResults.length === 0 && !loading && !searchLoading && formData.street_id && (
-          <div className="bg-white p-6 text-center rounded-lg shadow-md ">
-            <p className="text-gray-600">No properties found for the selected criteria.</p>
-          </div>
-        )}
+{searchResults.length === 0 && hasSearched && !loading && !searchLoading && activeTab === 'pending' && (
+  <div className="bg-white p-6 text-center rounded-lg shadow-md mt-6">
+    <p className="text-gray-600">No pending properties found for the selected criteria.</p>
+  </div>
+)}
       </div>
     </div>
   );

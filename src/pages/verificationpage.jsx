@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin, Camera, X } from 'lucide-react';
+import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../apiConfig/api';
+import LocationMap from '../components/locationmap';
 
 // Keep DetailSection Component exactly the same
+// Update DetailSection Component
 const DetailSection = ({ title, children }) => (
   <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 mb-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
     <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-      <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
+      <div className="h-8 w-1 bg-sky-500 rounded-full"></div> {/* Changed from bg-blue-500 to bg-sky-500 */}
       {title}
     </h3>
     <div className="animate-fadeIn">
@@ -20,15 +22,15 @@ const DetailSection = ({ title, children }) => (
 const DetailItem = ({ label, value, icon: Icon }) => (
   <div className="p-5 bg-white rounded-xl border border-gray-200 hover:border-blue-500 transition-all duration-300 group">
     <div className="flex items-center gap-3 mb-2">
-      {Icon && <Icon className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform duration-300" />}
+      {Icon && <Icon className="h-5 w-5 text-sky-500 group-hover:scale-110 transition-transform duration-300" />}
       <label className="text-sm font-semibold text-gray-600">{label}</label>
     </div>
     <p className="text-lg font-semibold text-gray-900 pl-8">{value}</p>
   </div>
 );
 
-// Updated FloorDetailsForm Component with photo upload
-const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
+// Updated PropertyDetailsForm Component with photo upload
+const PropertyDetailsForm = ({ onChange, data }) => {
   const buildingUsageOptions = [
     { value: "commercial", label: "Commercial" },
     { value: "government", label: "Government" },
@@ -42,45 +44,45 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
       alert('You can only upload up to 3 photos');
       return;
     }
-    onChange(floorNumber, 'photos', files);
+    onChange('photos', files);
   };
 
   const removePhoto = (index) => {
     const updatedPhotos = [...(data.photos || [])];
     updatedPhotos.splice(index, 1);
-    onChange(floorNumber, 'photos', updatedPhotos);
+    onChange('photos', updatedPhotos);
   };
 
   return (
     <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-6 hover:shadow-lg transition-all duration-300">
       <h4 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-        <Building className="h-6 w-6 text-blue-500" />
+        <Building className="h-6 w-6 text-sky-500" />
         <span className="relative">
-          {floorNumber === 0 ? 'Ground Floor Details' : `Floor ${floorNumber} Details`}
+        
           <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
         </span>
       </h4>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Total Floor Area (sq ft)
+            Total  Area (sq ft)
           </label>
           <input
             type="number"
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.floorArea || ''}
-            onChange={(e) => onChange(floorNumber, 'floorArea', e.target.value)}
+            onChange={(e) => onChange('floorArea', e.target.value)}
             required
           />
         </div>
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Building Usage
+            Usage
           </label>
           <select
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.buildingUsage || ''}
-            onChange={(e) => onChange(floorNumber, 'buildingUsage', e.target.value)}
+            onChange={(e) => onChange('buildingUsage', e.target.value)}
             required
           >
             <option value="">Select Usage</option>
@@ -99,7 +101,7 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
             type="number"
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
             value={data.ebNumber || ''}
-            onChange={(e) => onChange(floorNumber, 'ebNumber', e.target.value)}
+            onChange={(e) => onChange('ebNumber', e.target.value)}
             required
           />
         </div>
@@ -108,7 +110,7 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
       {/* Photo Upload Section */}
       <div className="mt-8">
         <label className="block text-sm font-semibold text-gray-700 mb-4">
-          Floor Photos (Max 3)
+          Property Photos (Max 3)
         </label>
         <div className="flex flex-wrap gap-4">
           <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
@@ -126,7 +128,7 @@ const FloorDetailsForm = ({ floorNumber, onChange, data }) => {
             <div key={index} className="relative w-32 h-32">
               <img
                 src={URL.createObjectURL(photo)}
-                alt={`Floor ${floorNumber} photo ${index + 1}`}
+                alt={`Property photo ${index + 1}`}
                 className="w-full h-full object-cover rounded-xl"
               />
               <button
@@ -147,18 +149,23 @@ const VerificationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [propertyData, setPropertyData] = useState(null);
-  const [ownerVerified, setOwnerVerified] = useState(false);
+  const [ownerVerified, setOwnerVerified] = useState(true);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
   const [totalArea, setTotalArea] = useState('');
   const [buildingStructure, setBuildingStructure] = useState('');
   const [buildingType, setBuildingType] = useState('');
-  const [totalFloors, setTotalFloors] = useState(0);
-  const [floorDetails, setFloorDetails] = useState({});
+  const [apartmentFloor, setApartmentFloor] = useState('');
+  const [propertyDetails, setPropertyDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [isMobileValid, setIsMobileValid] = useState(true);
   const [showMobileError, setShowMobileError] = useState(false);
+  const [newOwnerName, setNewOwnerName] = useState('');
+  const [totalFloors, setTotalFloors] = useState('');
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // New states for building/non-building flow
   const [isBuilding, setIsBuilding] = useState(true);
@@ -191,7 +198,7 @@ const VerificationPage = () => {
           return;
         }
 
-        const response = await api.get(`/api/v1/asset/detail/${id}`, {
+        const response = await api.get(`/asset/detail/${id}`, {
           headers: {
             'Authorization': token,
             'Content-Type': 'application/json'
@@ -232,6 +239,15 @@ const VerificationPage = () => {
     setPropertyPhotos(files);
   };
 
+  const handleOwnerUpdate = () => {
+    if (newOwnerName.trim()) {
+      // Here you can add the API call to update the owner name
+      console.log('Updating owner name to:', newOwnerName);
+      // After successful update:
+      setOwnerVerified(true);
+    }
+  };
+
   const removePhoto = (index) => {
     const updatedPhotos = [...propertyPhotos];
     updatedPhotos.splice(index, 1);
@@ -240,115 +256,211 @@ const VerificationPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!ownerVerified) {
-      newErrors.ownerVerified = 'Please verify the owner';
-    }
-
-    if (!mobileNumber || !validateMobileNumber(mobileNumber)) {
-      newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number';
-      setShowMobileError(true);
-      setIsMobileValid(false);
-      return false;
-    }
-
-    if (!totalArea) {
-      newErrors.totalArea = 'Total area is required';
-    }
-
-    if (isBuilding) {
-      if (!buildingStructure) {
-        newErrors.buildingStructure = 'Building structure is required';
-      }
-
-      if (!buildingType) {
-        newErrors.buildingType = 'Building type is required';
-      }
-
-      // Validate floor details
-      Object.keys(floorDetails).forEach(floor => {
-        if (!floorDetails[floor].floorArea) {
-          newErrors[`floor${floor}Area`] = 'Floor area is required';
-        }
-        if (!floorDetails[floor].buildingUsage) {
-          newErrors[`floor${floor}Usage`] = 'Building usage is required';
-        }
-        if (!floorDetails[floor].ebNumber) {
-          newErrors[`floor${floor}EbNumber`] = 'EB number is required';
-        }
-      });
-    } else {
-      if (!currentUsage) {
-        newErrors.currentUsage = 'Current usage is required';
-      }
-      if (!currentStructure) {
-        newErrors.currentStructure = 'Current structure is required';
-      }
-      if (propertyPhotos.length === 0) {
-        newErrors.propertyPhotos = 'At least one photo is required';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleBack = () => navigate(-1);
+    let errorMessage = '';
   
-  const handleSubmit = () => {
-    if (!validateForm()) {
-      alert('Please fill all required fields correctly');
+    // Owner Verification
+    if (!ownerVerified) {
+      errorMessage += '- Please verify the owner\n';
+    }
+  
+    // Mobile Number
+    if (!mobileNumber || !validateMobileNumber(mobileNumber)) {
+      errorMessage += '- Please enter a valid 10-digit mobile number\n';
+    }
+  
+    // // Total Area
+    // if (!totalArea) {
+    //   errorMessage += '- Total area is required\n';
+    // }
+  
+    // Location
+    if (!userLocation) {
+      errorMessage += '- Please detect your current location\n';
+    }
+  
+    // Building Related Validations
+    if (isBuilding) {
+      // Building Type
+      if (!buildingType) {
+        errorMessage += '- Please select a building type\n';
+      }
+  
+      // Apartment Specific Validations
+      if (buildingType === 'apartment') {
+        if (!totalFloors) {
+          errorMessage += '- Please select total number of floors\n';
+        }
+        if (!apartmentFloor) {
+          errorMessage += '- Please select the floor number\n';
+        }
+        if (!propertyDetails.floorArea) {
+          errorMessage += '- Total floor area is required\n';
+        }
+        if (!propertyDetails.buildingUsage) {
+          errorMessage += '- Building usage is required\n';
+        }
+        if (!propertyDetails.ebNumber) {
+          errorMessage += '- EB number is required\n';
+        }
+        if (!propertyDetails.photos || propertyDetails.photos.length === 0) {
+          errorMessage += '- At least one property photo is required\n';
+        }
+        // Roof Structure for top floor
+        if (apartmentFloor === totalFloors && !buildingStructure) {
+          errorMessage += '- Roof structure is required for top floor\n';
+        }
+      }
+  
+      // Independent or Row House Validations
+      if (buildingType === 'independent' || buildingType === 'row_house') {
+        if (!buildingStructure) {
+          errorMessage += '- Building structure is required\n';
+        }
+        if (!propertyDetails.floorArea) {
+          errorMessage += '- Total floor area is required\n';
+        }
+        if (!propertyDetails.buildingUsage) {
+          errorMessage += '- Building usage is required\n';
+        }
+        if (!propertyDetails.ebNumber) {
+          errorMessage += '- EB number is required\n';
+        }
+        if (!propertyDetails.photos || propertyDetails.photos.length === 0) {
+          errorMessage += '- At least one property photo is required\n';
+        }
+      }
+    } else {
+      // Non-Building Validations
+      // if (!currentUsage) {
+      //   errorMessage += '- Please select current usage\n';
+      // }
+      // if (!currentStructure) {
+      //   errorMessage += '- Please select current structure\n';
+      // }
+      if (!propertyPhotos || propertyPhotos.length === 0) {
+        errorMessage += '- At least one property photo is required\n';
+      }
+    }
+  
+    // If there are any errors, show them and return true (has errors)
+    if (errorMessage) {
+      alert('Please fix the following issues:\n' + errorMessage);
+      setErrors(newErrors);
+      return true;
+    }
+  
+    // Return false if there are no errors
+    setErrors({});
+    return false;
+  };
+  const handleBack = () => navigate(-1);
+  const handleSubmit = async () => {
+    if (validateForm()) {
       return;
     }
-
-    const submitData = {
-      ...formData,
-      propertyId: id,
-      ownerVerified,
-      mobileNumber,
-      totalArea,
-      isBuilding,
-      ...(isBuilding 
-        ? {
-            buildingStructure,
-            buildingType,
-            totalFloors,
-            floorDetails,
-          }
-        : {
-            currentUsage,
-            currentStructure,
-            propertyPhotos,
-          }
-      ),
-    };
-    
-    console.log('Submitting data:', submitData);
-    setShowSuccessNotification(true);
-    setTimeout(() => {
-      setShowSuccessNotification(false);
-      navigate(-1);
-    }, 2000);
-  };
-
-  const handleFloorDetailsChange = (floorNumber, field, value) => {
-    setFloorDetails(prev => ({
-      ...prev,
-      [floorNumber]: {
-        ...prev[floorNumber],
-        [field]: value
+  
+    try {
+      setIsSubmitting(true);
+  
+      // Get auth token
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const token = userData?.authToken;
+  
+      if (!token) {
+        alert('Authentication token not found. Please login again.');
+        return;
       }
+  
+      // Prepare the payload
+      const payload = {
+        asst_det_id: parseInt(id),
+        owner_det: {
+          name: ownerVerified ? propertyData.owner : newOwnerName,
+          mobile: mobileNumber
+        },
+        str_det: isBuilding ? {
+          type: buildingType === 'apartment' ? 'Apartment' :
+                buildingType === 'row_house' ? 'Row House' : 'Independent',
+          floors: buildingType === 'apartment' ? `${totalFloors} Floors` : null,
+          prop_floor: buildingType === 'apartment' ? 
+                     `${apartmentFloor === '0' ? 'Ground' : 
+                       apartmentFloor === '1' ? '1st' :
+                       apartmentFloor === '2' ? '2nd' :
+                       apartmentFloor === '3' ? '3rd' :
+                       `${apartmentFloor}th`} Floor` : null
+        } : null,
+        area: totalArea ? totalArea.toString() : "",
+        usage: propertyDetails.buildingUsage || "Residential",
+        eb_num: propertyDetails.ebNumber || "",
+        images: {}
+      };
+  
+      // Store the filter values before making API call
+      const filterValues = {
+        ward_id: propertyData.ward_id,
+        area_id: propertyData.area_id,
+        locality_id: propertyData.loc_id,
+        street_id: propertyData.street_id
+      };
+  
+      // Save filter values and set reload flag
+      localStorage.setItem('surveyFilters', JSON.stringify(filterValues));
+      localStorage.setItem('shouldReloadSurvey', 'true');
+  
+      console.log("Sending data:", payload);
+  
+      const response = await fetch('https://dmapt.onlinetn.com/api/v1/survey', {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+  
+      console.log("Response status:", response.status);
+      
+      const data = await response.json();
+      console.log("Response data:", data);
+  
+      if (response.ok) {
+        alert('Verification submitted successfully!');
+        // Here we're going back to survey form with saved filters
+        navigate(-1);
+      } else {
+        alert('Failed to submit verification: ' + (data.message || 'Unknown error'));
+      }
+  
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to submit verification. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Helper function to convert File to base64 string
+  const convertFileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data:image/jpeg;base64,
+      reader.onerror = error => reject(error);
+    });
+  };
+  const handlePropertyDetailsChange = (field, value) => {
+    setPropertyDetails((prev) => ({
+      ...prev,
+      [field]: value,
     }));
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
-
-  const floorNumbers = Array.from({ length: parseInt(totalFloors) + 1 }, (_, i) => i);
 
   if (loading || !propertyData) {
     return (
@@ -357,6 +469,35 @@ const VerificationPage = () => {
       </div>
     );
   }
+
+  const handleVerificationSubmit = async () => {
+    try {
+        const response = await fetch('https://dmapt.onlinetn.com/api/v1/survey', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                // Add any required data here, for example:
+                // key1: value1,
+                // key2: value2,
+            }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log("Success:", data);
+            // Handle successful response here (e.g., show a success message)
+        } else {
+            console.log("Error:", response.status);
+            // Handle error response here (e.g., show an error message)
+        }
+    } catch (error) {
+        console.error("Request failed:", error);
+        // Handle network or other errors here
+    }
+};
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -372,7 +513,7 @@ const VerificationPage = () => {
                 <ArrowLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
               </button>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                <LayoutDashboard className="h-7 w-7 text-blue-500" />
+                <LayoutDashboard className="h-7 w-7 text-sky-500" />
                 Property Details Verification
               </h1>
             </div>
@@ -381,85 +522,171 @@ const VerificationPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Owner Verification Section */}
-        <DetailSection title="Owner Verification">
-          <div className="flex items-center gap-6 mb-6 p-4 bg-blue-50 rounded-xl">
-            <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center">
-              <User className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{propertyData.owner}</p>
-          </div>
-          <label className="flex items-center gap-4 cursor-pointer p-4 hover:bg-gray-50 rounded-xl transition-colors">
-            <input
-              type="checkbox"
-              checked={ownerVerified}
-              onChange={(e) => setOwnerVerified(e.target.checked)}
-              className="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition-colors"
-            />
-            <span className="text-gray-700 font-medium">I confirm this is the correct owner name</span>
-          </label>
-          {errors.ownerVerified && (
-            <p className="text-red-500 mt-2">{errors.ownerVerified}</p>
-          )}
-        </DetailSection>
 
-        {/* Property Information Section */}
-        <DetailSection title="Property Information">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Location Details */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-              <div className="grid gap-6">
-                {[
-                  { key: 'zoneId', label: 'Zone ID', value: propertyData.zone_id },
-                  { key: 'wardId', label: 'Ward ID', value: propertyData.ward_id },
-                  { key: 'areaId', label: 'Area ID', value: propertyData.area_id },
-                  { key: 'localityId', label: 'Locality ID', value: propertyData.loc_id }
-                ].map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      {field.label}
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 transition-all duration-300"
-                      value={field.value}
-                      onChange={(e) => handleInputChange(field.key, e.target.value)}
-                      placeholder={`Enter ${field.label}`}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Contact Information */}
-            <div className="space-y-6">
-              <div className="grid gap-4">
-                <DetailItem label="Zone Name" value={propertyData.zone_name} icon={MapPin} />
-                <DetailItem label="Ward Name" value={propertyData.ward_name} icon={Building} />
-                <DetailItem label="Area Name" value={propertyData.area_name} icon={MapPin} />
-                <DetailItem label="Street Name" value={propertyData.street_name} icon={MapPin} />
-                <DetailItem label="Locality Name" value={propertyData.loc_name} icon={MapPin} />
-              </div>
-            </div>
 
-            {/* Property Details */}
-            <div className="space-y-6">
-              <div className="grid gap-4">
-                <DetailItem label="Assessment Ref" value={propertyData.asst_ref} icon={LayoutDashboard} />
-                <DetailItem label="Door Number" value={propertyData.new_door} icon={Building} />
-                <DetailItem label="Usage Type" value={propertyData.usage_type} icon={Building} />
-                <DetailItem label="Building Area" value={`${propertyData.build_area} sq.ft`} icon={LayoutDashboard} />
-              </div>
+{/* Property Information */}
+<DetailSection title="Property Information">
+  <button 
+    className="lg:hidden w-full flex items-center justify-between p-2 mb-3 text-gray-700 bg-gray-100 rounded-lg"
+    onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+  >
+    <span className="font-semibold">Property Details</span>
+    {isMobileExpanded ? (
+      <ChevronUp className="h-4 w-4 text-gray-500" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-gray-500" />
+    )}
+  </button>
+
+  <div className={`${!isMobileExpanded ? 'hidden lg:block' : ''}`}>
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-x-4 md:gap-y-3">
+        {/* First Column - spans full width on mobile, 2 cols on desktop */}
+        <div className="col-span-1 md:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-3 md:gap-y-3">
+            <div>
+              <p className="text-sm font-bold text-gray-700">Assessment ID</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.asst_ref}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Zone</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.zone_name}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Zone ID</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.zone_id}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Ward</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.ward_name}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Ward ID</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.ward_id}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Area</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.area_name}</p>
             </div>
           </div>
-        </DetailSection>
+        </div>
 
+        {/* Second Column - spans full width on mobile, 2 cols on desktop */}
+        <div className="col-span-1 md:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-3 md:gap-y-3">
+            <div>
+              <p className="text-sm font-bold text-gray-700">Area ID</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.area_id}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Street</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.street_name}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Locality ID</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.loc_id}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Locality</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.loc_name}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Door No</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.new_door}</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-700">Usage</p>
+              <p className="text-xs font-medium text-gray-500">{propertyData.usage_type}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Build Area - spans full width on mobile, 1 col on desktop */}
+        <div className="col-span-1">
+          <div>
+            <p className="text-sm font-bold text-gray-700">Build Area</p>
+            <p className="text-xs font-medium text-gray-500">{propertyData.build_area} sq.ft</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DetailSection>
+
+{/* Owner Verification */}
+<DetailSection title="Owner Verification">
+  <div className="space-y-4">
+    <div className="flex items-center gap-4 bg-sky-50 p-4 rounded-xl">
+      <div className="h-12 w-12 bg-sky-500 rounded-full flex items-center justify-center">
+        <User className="h-6 w-6 text-white" />
+      </div>
+      <div>
+        <h3 className="text-xl font-semibold text-gray-800">{propertyData.owner}</h3>
+      </div>
+    </div>
+
+    <div className="space-y-4 max-w-full md:max-w-[800px] md:mt-4">
+      {/* Owner Name Verification with Mobile Input */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center">
+          <p className="text-sm text-gray-600 ml-2">Is this owner name correct?</p>
+          <div className="flex gap-2 ml-3">
+            <button
+              onClick={() => {
+                setOwnerVerified(true);
+                setNewOwnerName('');
+              }}
+              className="px-4 py-1 text-sm font-medium text-white bg-green-500 rounded-lg"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => setOwnerVerified(false)}
+              className="px-4 py-1 text-sm font-medium text-white bg-red-500 rounded-lg"
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Number Input - Now at the right end */}
+        {/* <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-600">Enter mobile number:</p>
+          <input
+            type="tel"
+            value={mobileNumber}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              if (value.length <= 10) setMobileNumber(value);
+            }}
+            className="w-40 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+            placeholder="Enter mobile number"
+            maxLength="10"
+          />
+        </div> */}
+      </div>
+
+      {/* Owner Name Input (Conditional) */}
+      {!ownerVerified && (
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mt-4">
+          <input
+            type="text"
+            value={newOwnerName}
+            onChange={(e) => setNewOwnerName(e.target.value)}
+            className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+            placeholder="Enter correct owner name"
+          />
+        </div>
+      )}
+    </div>
+  </div>
+</DetailSection>
         {/* Survey Details Section */}
         <DetailSection title="Survey Details">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">
-                Mobile Number
+                Mobile Number As Per Property Tax Records
               </label>
               <input
                 type="tel"
@@ -488,7 +715,7 @@ const VerificationPage = () => {
               )}
             </div>
 
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">
                 Total Area (sq ft)
               </label>
@@ -502,9 +729,9 @@ const VerificationPage = () => {
               {errors.totalArea && (
                 <p className="text-red-500 text-sm mt-1">{errors.totalArea}</p>
               )}
-            </div>
+            </div> */}
 
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">
                 Assessment ID
               </label>
@@ -514,7 +741,7 @@ const VerificationPage = () => {
                 value={propertyData.asst_id}
                 readOnly
               />
-            </div>
+            </div> */}
 
             {/* Building Type Selection */}
             <div className="space-y-3">
@@ -533,106 +760,185 @@ const VerificationPage = () => {
             </div>
 
             {isBuilding ? (
-              <>
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Building Type
-                  </label>
-                  <select
-                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                    value={buildingType}
-                    onChange={(e) => setBuildingType(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Type</option>
-                    <option value="apartment">Apartment</option>
-                    <option value="row_house">Row House</option>
-                    <option value="independent">Independent House</option>
-                  </select>
-                  {errors.buildingType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
-                  )}
-                </div>
+  <>
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Building Type
+      </label>
+      <select
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={buildingType}
+        onChange={(e) => {
+          setBuildingType(e.target.value);
+          setTotalFloors('');
+          setApartmentFloor('');
+        }}
+        required
+      >
+        <option value="">Select Type</option>
+        <option value="apartment">Apartment</option>
+        <option value="row_house">Row House</option>
+        <option value="independent">Independent House</option>
+      </select>
+      {errors.buildingType && (
+        <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
+      )}
+    </div>
+    
+    {buildingType === 'apartment' && (
+      <>
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700">
+            Total Number of Floors in Apartment
+          </label>
+          <select
+            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+            value={totalFloors}
+            onChange={(e) => {
+              setTotalFloors(e.target.value);
+              setApartmentFloor(''); // Reset floor selection when total floors changes
+            }}
+            required
+          >
+            <option value="">Select Total Floors</option>
+            {[...Array(10)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {i + 1} Floor{i > 0 ? 's' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Building Structure
-                  </label>
-                  <select
-                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                    value={buildingStructure}
-                    onChange={(e) => setBuildingStructure(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Type</option>
-                    <option value="ac">AC Sheet</option>
-                    <option value="tatched">Tatched</option>
-                    <option value="rcc">RCC Sheet</option>
-                  </select>
-                  {errors.buildingStructure && (
-                    <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
-                  )}
-                </div>
+        {totalFloors && (
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-gray-700">
+              In which floor property is present?
+            </label>
+            <select
+              className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+              value={apartmentFloor}
+              onChange={(e) => setApartmentFloor(e.target.value)}
+              required
+            >
+              <option value="">Select Floor</option>
+              <option value="0">Ground Floor</option>
+              {[...Array(parseInt(totalFloors))].map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}{i + 1 === 1 ? 'st' : i + 1 === 2 ? 'nd' : i + 1 === 3 ? 'rd' : 'th'} Floor
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Total Number of Floors
-                  </label>
-                  <select
-                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                    value={totalFloors}
-                    onChange={(e) => setTotalFloors(e.target.value)}
-                    required
-                  >
-                    {Array.from({ length: 11 }, (_, i) => (
-                      <option key={i} value={i}>{i}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Current Usage
-                  </label>
-                  <select
-                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                    value={currentUsage}
-                    onChange={(e) => setCurrentUsage(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Usage</option>
-                    <option value="parking">Parking</option>
-                    <option value="garden">Garden</option>
-                    <option value="playground">Playground</option>
-                    <option value="vacant">Vacant Land</option>
-                  </select>
-                  {errors.currentUsage && (
-                    <p className="text-red-500 text-sm mt-1">{errors.currentUsage}</p>
-                  )}
-                </div>
+        {/* Show Roof Structure only if selected floor equals total floors */}
+        {totalFloors && apartmentFloor === totalFloors && (
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-gray-700">
+              Roof Structure
+            </label>
+            <select
+              className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+              value={buildingStructure}
+              onChange={(e) => setBuildingStructure(e.target.value)}
+              required
+            >
+              <option value="">Select Type</option>
+              <option value="ac">AC Sheet</option>
+              <option value="thatched">Thatched</option>
+              <option value="rcc">RCC Sheet</option>
+            </select>
+            {errors.buildingStructure && (
+              <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+            )}
+          </div>
+        )}
+      </>
+    )}
 
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Current Structure
-                  </label>
-                  <select
-                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                    value={currentStructure}
-                    onChange={(e) => setCurrentStructure(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Structure</option>
-                    <option value="open">Open Land</option>
-                    <option value="fenced">Fenced</option>
-                    <option value="paved">Paved</option>
-                    <option value="landscaped">Landscaped</option>
-                  </select>
-                  {errors.currentStructure && (
-                    <p className="text-red-500 text-sm mt-1">{errors.currentStructure}</p>
-                  )}
-                </div>
+    {/* Show Roof Structure directly for independent and row house */}
+    {(buildingType === 'independent' || buildingType === 'row_house') && (
+      <div className="space-y-3">
+        <label className="block text-sm font-semibold text-gray-700">
+          Roof Structure
+        </label>
+        <select
+          className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+          value={buildingStructure}
+          onChange={(e) => setBuildingStructure(e.target.value)}
+          required
+        >
+          <option value="">Select Type</option>
+          <option value="ac">AC Sheet</option>
+          <option value="thatched">Thatched</option>
+          <option value="rcc">RCC Sheet</option>
+        </select>
+        {errors.buildingStructure && (
+          <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+        )}
+      </div>
+    )}
+  </>
+) : (
+  <>
+    {/* <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Current Usage
+      </label>
+      <select
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={currentUsage}
+        onChange={(e) => setCurrentUsage(e.target.value)}
+        required
+      >
+        <option value="">Select Usage</option>
+        <option value="parking">Parking</option>
+        <option value="garden">Garden</option>
+        <option value="playground">Playground</option>
+        <option value="vacant">Vacant Land</option>
+      </select>
+      {errors.currentUsage && (
+        <p className="text-red-500 text-sm mt-1">{errors.currentUsage}</p>
+      )}
+    </div>
+
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Current Structure
+      </label>
+      <select
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={currentStructure}
+        onChange={(e) => setCurrentStructure(e.target.value)}
+        required
+      >
+        <option value="">Select Structure</option>
+        <option value="open">Open Land</option>
+        <option value="fenced">Fenced</option>
+        <option value="paved">Paved</option>
+        <option value="landscaped">Landscaped</option>
+      </select>
+      {errors.currentStructure && (
+        <p className="text-red-500 text-sm mt-1">{errors.currentStructure}</p>
+      )}
+    </div> */}
+
+    {/* Added EB Number field */}
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        EB Number
+      </label>
+      <input
+        type="text"
+        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+        value={propertyDetails.ebNumber || ''}
+        onChange={(e) => handlePropertyDetailsChange('ebNumber', e.target.value)}
+        required
+      />
+      {errors.ebNumber && (
+        <p className="text-red-500 text-sm mt-1">{errors.ebNumber}</p>
+      )}
+    </div>
 
                 {/* Photo Upload for Non-Building */}
                 <div className="space-y-3">
@@ -676,32 +982,44 @@ const VerificationPage = () => {
           </div>
         </DetailSection>
 
-        {/* Floor Details Section - Only show if isBuilding is true */}
-        {isBuilding && (
-          <DetailSection title="Floor-wise Details">
-            <div className="grid grid-cols-1 gap-8">
-              {floorNumbers.map((floorNumber) => (
-                <FloorDetailsForm
-                  key={floorNumber}
-                  floorNumber={floorNumber}
-                  onChange={handleFloorDetailsChange}
-                  data={floorDetails[floorNumber] || {}}
-                />
-              ))}
-            </div>
-          </DetailSection>
-        )}
+    {/* Property Details Section - Only show if isBuilding is true */}
+{isBuilding && (
+  <DetailSection title="Property Details as Observed">
+    <PropertyDetailsForm
+      onChange={handlePropertyDetailsChange}
+      data={propertyDetails}
+    />
+  </DetailSection>
+)}
 
-        {/* Submit Button */}
-        <div className="flex justify-center mt-12 mb-12">
-          <button
-            onClick={handleSubmit}
-            className="px-10 py-4 rounded-xl flex items-center gap-3 bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg text-lg font-semibold group"
-          >
-            <Check className="h-6 w-6 group-hover:scale-110 transition-transform" />
-            Submit Verification
-          </button>
-        </div>
+{/* Location Map Section */}
+<DetailSection title="Location Verification">
+  <LocationMap
+    onLocationSelect={(location) => {
+      setUserLocation(location);
+      console.log("Selected location:", location);
+    }}
+  />
+</DetailSection>
+
+{/* Submit Button */}
+<div className="flex justify-center mt-12 mb-12">
+<button
+  onClick={handleSubmit}
+  disabled={isSubmitting}
+  className="px-5 py-2 rounded-xl flex items-center gap-3 bg-sky-600 text-white 
+  hover:bg-sky-700 transition-all duration-300 transform hover:-translate-y-1 
+  hover:shadow-lg text-lg font-semibold group disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isSubmitting ? (
+    <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
+  ) : (
+    <Check className="h-6 w-6 group-hover:scale-110 transition-transform" />
+  )}
+  {isSubmitting ? 'Submitting...' : 'Submit Verification'}
+</button>
+</div>
+
 
         {/* Success Notification Modal */}
         {showSuccessNotification && (

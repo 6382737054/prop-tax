@@ -1,1 +1,1 @@
-export const API_URL = 'http://dmapt.klabsindia.com';
+export const API_URL = 'https://dmapt.onlinetn.com/api/v1';
