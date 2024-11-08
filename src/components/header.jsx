@@ -152,13 +152,13 @@ const Header = ({ setIsLoggedIn }) => {
                 
                 {userDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden">
-                    <button 
+                    {/* <button 
                       onClick={handleProfileClick}
                       className="flex items-center w-full px-4 py-3 text-sm text-black hover:bg-[#75d1e3]/10 transition-colors"
                     >
                       <UserCircle className="h-4 w-4 mr-2 text-black" />
                       Profile
-                    </button>
+                    </button> */}
                     <button 
                       onClick={handleLogout}
                       className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -273,13 +273,13 @@ const Header = ({ setIsLoggedIn }) => {
               <div className="px-4 text-sm text-black mb-2">
                 Logged in as {userData?.name || 'User'}
               </div>
-              <button 
+              {/* <button 
                 onClick={handleProfileClick}
                 className="w-full flex items-center px-4 py-3 text-black hover:bg-[#75d1e3]/10 rounded-lg transition-colors"
               >
                 <UserCircle className="h-5 w-5 mr-3 text-black" />
                 <span className="font-medium">Profile</span>
-              </button>
+              </button> */}
               
               <button 
                 onClick={handleLogout}

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Check, Phone, Building, LayoutDashboard, MapPin, Camera, X, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../apiConfig/api';
 import LocationMap from '../components/locationmap';
+import PhotoLocationCapture from '../components/photolocationcapture';
 
 // Keep DetailSection Component exactly the same
 // Update DetailSection Component
@@ -28,123 +29,341 @@ const DetailItem = ({ label, value, icon: Icon }) => (
     <p className="text-lg font-semibold text-gray-900 pl-8">{value}</p>
   </div>
 );
-
-// Updated PropertyDetailsForm Component with photo upload
-const PropertyDetailsForm = ({ onChange, data }) => {
+const PropertyDetailsForm = ({ onChange, data, propertyPhotos, setPropertyPhotos, previousArea }) => {
+  const [hasProfessionalTax, setHasProfessionalTax] = useState(true);
+  const [professionalTaxId, setProfessionalTaxId] = useState('');
+  const [ebNumberError, setEbNumberError] = useState('');
+  const [showEbError, setShowEbError] = useState(false);
+  const [taxIdError, setTaxIdError] = useState('');
+  const [showTaxIdError, setShowTaxIdError] = useState(false);
+  const [employeeCounts, setEmployeeCounts] = useState({
+    row1: 0, row2: 0, row3: 0, row4: 0, row5: 0, row6: 0
+  });
   const buildingUsageOptions = [
     { value: "commercial", label: "Commercial" },
     { value: "government", label: "Government" },
     { value: "residential", label: "Residential" },
-    { value: "educational", label: "Educational" }
+    { value: "educational", label: "Educational" },
+    { value: "mixed", label: "Mixed" }
   ];
-
-  const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 3) {
-      alert('You can only upload up to 3 photos');
-      return;
+  const validateTaxId = (value) => {
+    if (hasProfessionalTax) {
+      if (!value.trim()) {
+        setTaxIdError('Professional Tax ID is required');
+        return false;
+      }
+      if (value.length < 5) {
+        setTaxIdError('Please enter a valid Professional Tax ID');
+        return false;
+      }
     }
-    onChange('photos', files);
+    setTaxIdError('');
+    return true;
   };
-
-  const removePhoto = (index) => {
-    const updatedPhotos = [...(data.photos || [])];
-    updatedPhotos.splice(index, 1);
-    onChange('photos', updatedPhotos);
+  const validateEbNumber = (value) => {
+    if (!value) {
+      setEbNumberError('Please enter EB number');
+      return false;
+    }
+    if (value.length !== 12) {
+      setEbNumberError('EB number must be 12 digits');
+      return false;
+    }
+    setEbNumberError('');
+    return true;
   };
-
+  const calculateTax = (employeeCount, taxRate) => {
+    if (!employeeCount || !taxRate) return 0;
+    return employeeCount * taxRate;
+  };
+  const handleEmployeeCountChange = (rowKey, value) => {
+    const numValue = value === '' ? '' : parseInt(value.replace(/^0+/, '')) || 0;
+    setEmployeeCounts(prev => ({
+      ...prev,
+      [rowKey]: numValue
+    }));
+  };
+  const shouldShowProfessionalTax = data.buildingUsage === 'commercial' || data.buildingUsage === 'mixed';
+  const handleUsageChange = (e) => {
+    const value = e.target.value;
+    onChange('buildingUsage', value);
+    if (value !== 'commercial' && value !== 'mixed') {
+      setHasProfessionalTax(false);
+      setProfessionalTaxId('');
+      onChange('hasProfessionalTax', false);
+      onChange('professionalTaxId', '');
+      setTaxIdError('');
+      setShowTaxIdError(false);
+    }
+  };
+  const handleProfessionalTaxToggle = () => {
+    const newValue = !hasProfessionalTax;
+    setHasProfessionalTax(newValue);
+    
+    // Update parent state with both values
+    onChange('hasProfessionalTax', newValue);
+    if (!newValue) {
+      setProfessionalTaxId('');
+      onChange('professionalTaxId', '');
+    }
+  };
+  
+  const handleProfessionalTaxIdChange = (e) => {
+    const value = e.target.value;
+    setProfessionalTaxId(value);
+    // Make sure to update parent state
+    onChange('professionalTaxId', value);
+  };
   return (
     <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 mb-6 hover:shadow-lg transition-all duration-300">
       <h4 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
         <Building className="h-6 w-6 text-sky-500" />
-        <span className="relative">
-        
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
-        </span>
+        <span className="relative">Property Details</span>
       </h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Total  Area (sq ft)
-          </label>
-          <input
-            type="number"
-            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-            value={data.floorArea || ''}
-            onChange={(e) => onChange('floorArea', e.target.value)}
-            required
-          />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-1">
+          <div className="flex flex-col h-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Build Area as per Records (sq ft)</label>
+            <input type="text" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 cursor-not-allowed" value={previousArea || ''} disabled />
+          </div>
         </div>
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Usage
-          </label>
-          <select
-            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-            value={data.buildingUsage || ''}
-            onChange={(e) => onChange('buildingUsage', e.target.value)}
-            required
-          >
-            <option value="">Select Usage</option>
-            {buildingUsageOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+        <div className="md:col-span-1">
+          <div className="flex flex-col h-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Build Area as Observed (sq ft)</label>
+            <input type="number" className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300" value={data.floorArea || ''} onChange={(e) => onChange('floorArea', e.target.value)} required placeholder="Enter area" />
+          </div>
         </div>
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            EB Number
-          </label>
-          <input
-            type="number"
-            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-            value={data.ebNumber || ''}
-            onChange={(e) => onChange('ebNumber', e.target.value)}
-            required
-          />
+        <div className="md:col-span-1">
+          <div className="flex flex-col h-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">EB Number</label>
+            <input
+              type="text"
+              className={`w-full p-4 border ${ebNumberError && showEbError ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300`}
+              value={data.ebNumber || ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^\d]/g, '').slice(0, 12);
+                onChange('ebNumber', value);
+                if (value.length > 0) {
+                  setShowEbError(true);
+                  validateEbNumber(value);
+                } else {
+                  setShowEbError(false);
+                  setEbNumberError('');
+                }
+              }}
+              onBlur={() => {
+                setShowEbError(true);
+                validateEbNumber(data.ebNumber || '');
+              }}
+              onFocus={() => {
+                if (!data.ebNumber) {
+                  setShowEbError(false);
+                }
+              }}
+              maxLength={12}
+              required
+              placeholder="Enter 12 digit EB number"
+            />
+            {showEbError && ebNumberError && (
+              <p className="text-red-500 text-sm mt-1">{ebNumberError}</p>
+            )}
+          </div>
+        </div>
+        <div className="md:col-span-1">
+          <div className="flex flex-col h-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Usage</label>
+            <select className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300" value={data.buildingUsage || ''} onChange={handleUsageChange} required>
+              <option value="">Select Usage</option>
+              {buildingUsageOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
-
-      {/* Photo Upload Section */}
-      <div className="mt-8">
-        <label className="block text-sm font-semibold text-gray-700 mb-4">
-          Property Photos (Max 3)
-        </label>
-        <div className="flex flex-wrap gap-4">
-          <label className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoUpload}
-              max="3"
-            />
-            <Camera className="h-8 w-8 text-gray-400" />
-          </label>
-          {data.photos && data.photos.map((photo, index) => (
-            <div key={index} className="relative w-32 h-32">
-              <img
-                src={URL.createObjectURL(photo)}
-                alt={`Property photo ${index + 1}`}
-                className="w-full h-full object-cover rounded-xl"
-              />
+      {shouldShowProfessionalTax && (
+        <div className="mt-8 border-t border-gray-200">
+          <div className="pt-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <label className="text-sm font-semibold text-gray-700">Have Professional Tax Registration?</label>
               <button
-                onClick={() => removePhoto(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                type="button"
+                onClick={handleProfessionalTaxToggle}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full shrink-0 ${hasProfessionalTax ? 'bg-green-500' : 'bg-gray-200'} transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2`}
               >
-                <X className="h-4 w-4" />
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${hasProfessionalTax ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
-          ))}
+            {hasProfessionalTax ? (
+              <div className="w-full md:w-auto md:flex-1 md:max-w-md">
+                <input
+                  type="number"
+                  className={`w-full md:w-[70%] p-4 border ${taxIdError && showTaxIdError ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300`}
+                  value={professionalTaxId}
+                  onChange={handleProfessionalTaxIdChange}
+                  onBlur={() => {
+                    setShowTaxIdError(true);
+                    validateTaxId(professionalTaxId);
+                  }}
+                  onFocus={() => {
+                    if (!professionalTaxId) {
+                      setShowTaxIdError(false);
+                    }
+                  }}
+                  required
+                  placeholder="Enter Professional Tax ID"
+                />
+                {showTaxIdError && taxIdError && (
+                  <p className="text-red-500 text-sm mt-1">{taxIdError}</p>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-auto -mx-8 px-8 sm:mx-0 sm:px-0">
+                <div className="min-w-[500px] sm:min-w-0 sm:max-w-2xl bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <table className="w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sl. No.</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Average Half-Yearly Income</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Half-Yearly Tax</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Number of Employees</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tax Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      <tr>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">1</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Upto Rs. 21,000/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Nil</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 p-1 border border-gray-200 rounded"
+                            value={employeeCounts.row1}
+                            onChange={(e) => handleEmployeeCountChange('row1', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Nil</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">2</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">From 21,001/- to 30,000/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Rs. 135/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 p-1 border border-gray-200 rounded"
+                            value={employeeCounts.row2}
+                            onChange={(e) => handleEmployeeCountChange('row2', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {calculateTax(employeeCounts.row2, 135)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">3</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">From 30,001/- to 45,000/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Rs. 315/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 p-1 border border-gray-200 rounded"
+                            value={employeeCounts.row3}
+                            onChange={(e) => handleEmployeeCountChange('row3', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {calculateTax(employeeCounts.row3, 315)}
+                        </td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">4</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">From 45,001/- to 60,000/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Rs. 690/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 p-1 border border-gray-200 rounded"
+                            value={employeeCounts.row4}
+                            onChange={(e) => handleEmployeeCountChange('row4', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {calculateTax(employeeCounts.row4, 690)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">5</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">From 60,001/- to 75,000/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Rs. 1025/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 p-1 border border-gray-200 rounded"
+                            value={employeeCounts.row5}
+                            onChange={(e) => handleEmployeeCountChange('row5', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {calculateTax(employeeCounts.row5, 1025)}
+                        </td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">6</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">From 75,001/- and above</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">Rs. 1250/-</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 p-1 border border-gray-200 rounded"
+                            value={employeeCounts.row6}
+                            onChange={(e) => handleEmployeeCountChange('row6', e.target.value)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {calculateTax(employeeCounts.row6, 1250)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={3} className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900 text-right">Total:</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {Object.values(employeeCounts).reduce((total, count) => total + (parseInt(count) || 0), 0)}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
+                          {calculateTax(employeeCounts.row2, 135) + 
+                           calculateTax(employeeCounts.row3, 315) + 
+                           calculateTax(employeeCounts.row4, 690) + 
+                           calculateTax(employeeCounts.row5, 1025) + 
+                           calculateTax(employeeCounts.row6, 1250)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      )}
+      <div className="mt-8">
+        <label className="block text-sm font-semibold text-gray-700 mb-4">Property Photos with Location (Max 3)</label>
+        <PhotoLocationCapture 
+          onPhotoCaptured={(photos) => {
+            console.log('Photos captured:', photos);
+            setPropertyPhotos(photos);
+          }}
+        />
       </div>
     </div>
   );
 };
-
 const VerificationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -153,25 +372,33 @@ const VerificationPage = () => {
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
   const [totalArea, setTotalArea] = useState('');
-  const [buildingStructure, setBuildingStructure] = useState('');
-  const [buildingType, setBuildingType] = useState('');
+  const [buildingStructure, setBuildingStructure] = useState('ac');
+  const [buildingType, setBuildingType] = useState('independent');
   const [apartmentFloor, setApartmentFloor] = useState('');
-  const [propertyDetails, setPropertyDetails] = useState({});
+  const [propertyDetails, setPropertyDetails] = useState({
+    floorArea: '',
+    buildingUsage: '',
+    ebNumber: '',
+    hasProfessionalTax: true, // Add this
+    professionalTaxId: ''      // Add this
+  });
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [isMobileValid, setIsMobileValid] = useState(true);
   const [showMobileError, setShowMobileError] = useState(false);
-  const [newOwnerName, setNewOwnerName] = useState('');
+
   const [totalFloors, setTotalFloors] = useState('');
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newOwnerName, setNewOwnerName] = useState('');
   
   // New states for building/non-building flow
   const [isBuilding, setIsBuilding] = useState(true);
   const [currentUsage, setCurrentUsage] = useState('');
-  const [currentStructure, setCurrentStructure] = useState('');
+
   const [propertyPhotos, setPropertyPhotos] = useState([]);
+
   
   const [formData, setFormData] = useState({
     zoneId: '',
@@ -179,9 +406,8 @@ const VerificationPage = () => {
     areaId: '',
     localityId: '',
   });
-
   const validateMobileNumber = (number) => {
-    const isValid = /^\d{10}$/.test(number);
+    const isValid = /^[6-9]\d{9}$/.test(number);
     setIsMobileValid(isValid);
     return isValid;
   };
@@ -254,105 +480,104 @@ const VerificationPage = () => {
     setPropertyPhotos(updatedPhotos);
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    let errorMessage = '';
-  
-    // Owner Verification
-    if (!ownerVerified) {
-      errorMessage += '- Please verify the owner\n';
+ // Update the owner verification section in VerificationPage component
+
+// Update the validateForm function
+const validateForm = () => {
+  const newErrors = {};
+  let errorMessage = '';
+
+  // Owner verification check
+  if (!ownerVerified && !newOwnerName.trim()) {
+    errorMessage += '- Please enter the new owner name\n';
+  }
+
+  // Mobile Number validation
+  if (!mobileNumber || !validateMobileNumber(mobileNumber)) {
+    errorMessage += '- Please enter a valid 10-digit mobile number\n';
+  }
+
+  if (isBuilding) {
+    // Common Building Validations
+    if (!propertyDetails.floorArea) {
+      errorMessage += '- Build Area as Observed is required\n';
     }
-  
-    // Mobile Number
-    if (!mobileNumber || !validateMobileNumber(mobileNumber)) {
-      errorMessage += '- Please enter a valid 10-digit mobile number\n';
+
+    if (!propertyDetails.buildingUsage) {
+      errorMessage += '- Building usage is required\n';
     }
-  
-    // // Total Area
-    // if (!totalArea) {
-    //   errorMessage += '- Total area is required\n';
-    // }
-  
-    // Location
-    if (!userLocation) {
-      errorMessage += '- Please detect your current location\n';
+
+    if (!propertyDetails.ebNumber || propertyDetails.ebNumber.length !== 12) {
+      errorMessage += '- Please enter a valid 12-digit EB number\n';
     }
-  
-    // Building Related Validations
-    if (isBuilding) {
-      // Building Type
-      if (!buildingType) {
-        errorMessage += '- Please select a building type\n';
-      }
-  
-      // Apartment Specific Validations
-      if (buildingType === 'apartment') {
-        if (!totalFloors) {
-          errorMessage += '- Please select total number of floors\n';
-        }
-        if (!apartmentFloor) {
-          errorMessage += '- Please select the floor number\n';
-        }
-        if (!propertyDetails.floorArea) {
-          errorMessage += '- Total floor area is required\n';
-        }
-        if (!propertyDetails.buildingUsage) {
-          errorMessage += '- Building usage is required\n';
-        }
-        if (!propertyDetails.ebNumber) {
-          errorMessage += '- EB number is required\n';
-        }
-        if (!propertyDetails.photos || propertyDetails.photos.length === 0) {
-          errorMessage += '- At least one property photo is required\n';
-        }
-        // Roof Structure for top floor
-        if (apartmentFloor === totalFloors && !buildingStructure) {
-          errorMessage += '- Roof structure is required for top floor\n';
+
+    // Enhanced Professional Tax Validation
+    if (propertyDetails.buildingUsage === 'commercial' || propertyDetails.buildingUsage === 'mixed') {
+      // First check if professional tax is enabled
+      if (propertyDetails.hasProfessionalTax === true) {
+        // Validate professional tax ID more strictly
+        if (!propertyDetails.professionalTaxId) {
+          errorMessage += '- Professional Tax ID is required when Professional Tax is enabled\n';
+        } else if (propertyDetails.professionalTaxId.trim().length < 5) {
+          errorMessage += '- Professional Tax ID must be at least 5 characters long\n';
         }
       }
-  
-      // Independent or Row House Validations
-      if (buildingType === 'independent' || buildingType === 'row_house') {
-        if (!buildingStructure) {
-          errorMessage += '- Building structure is required\n';
-        }
-        if (!propertyDetails.floorArea) {
-          errorMessage += '- Total floor area is required\n';
-        }
-        if (!propertyDetails.buildingUsage) {
-          errorMessage += '- Building usage is required\n';
-        }
-        if (!propertyDetails.ebNumber) {
-          errorMessage += '- EB number is required\n';
-        }
-        if (!propertyDetails.photos || propertyDetails.photos.length === 0) {
-          errorMessage += '- At least one property photo is required\n';
-        }
+    }
+
+    // Building Type validation
+    if (!buildingType) {
+      errorMessage += '- Please select a building type\n';
+    }
+
+    // Apartment Specific Validations
+    if (buildingType === 'apartment') {
+      if (!totalFloors) {
+        errorMessage += '- Please select total number of floors\n';
       }
-    } else {
-      // Non-Building Validations
-      // if (!currentUsage) {
-      //   errorMessage += '- Please select current usage\n';
-      // }
-      // if (!currentStructure) {
-      //   errorMessage += '- Please select current structure\n';
-      // }
-      if (!propertyPhotos || propertyPhotos.length === 0) {
-        errorMessage += '- At least one property photo is required\n';
+      
+      if (!apartmentFloor && apartmentFloor !== '0') {
+        errorMessage += '- Please select the floor number\n';
+      }
+
+      // Roof Structure validation for top floor
+      if (apartmentFloor === totalFloors && !buildingStructure) {
+        errorMessage += '- Roof structure is required for top floor\n';
       }
     }
-  
-    // If there are any errors, show them and return true (has errors)
-    if (errorMessage) {
-      alert('Please fix the following issues:\n' + errorMessage);
-      setErrors(newErrors);
-      return true;
+
+    // Independent or Row House Validations
+    if (buildingType === 'independent' || buildingType === 'row_house') {
+      if (!buildingStructure) {
+        errorMessage += '- Roof structure is required\n';
+      }
     }
-  
-    // Return false if there are no errors
-    setErrors({});
-    return false;
-  };
+
+    // Photo validation for all building types
+    if (!propertyPhotos || propertyPhotos.length === 0) {
+      errorMessage += '- At least one property photo is required\n';
+    }
+  } else {
+    // Non-Building Validations
+    if (!currentUsage) {
+      errorMessage += '- Please select current usage\n';
+    }
+
+    if (!propertyPhotos || propertyPhotos.length === 0) {
+      errorMessage += '- At least one property photo is required\n';
+    }
+  }
+
+  // Handle errors
+  if (errorMessage) {
+    alert('Please fix the following issues:\n' + errorMessage);
+    setErrors(newErrors);
+    return true; // Return true to indicate validation failed
+  }
+
+  // Clear errors if everything is valid
+  setErrors({});
+  return false; // Return false to indicate validation passed
+};
   const handleBack = () => navigate(-1);
   const handleSubmit = async () => {
     if (validateForm()) {
@@ -362,90 +587,178 @@ const VerificationPage = () => {
     try {
       setIsSubmitting(true);
   
-      // Get auth token
       const userData = JSON.parse(localStorage.getItem('userData'));
       const token = userData?.authToken;
   
       if (!token) {
-        alert('Authentication token not found. Please login again.');
-        return;
+        throw new Error('Authentication token not found');
       }
   
-      // Prepare the payload
+      // Log current state values
+      console.log('Current State Values:', {
+        id,
+        buildingType,
+        totalFloors,
+        apartmentFloor,
+        propertyDetails,
+        mobileNumber,
+        propertyPhotos,
+        ownerVerified,
+        newOwnerName,
+        propertyData
+      });
+  
+      // Create payload with validation
       const payload = {
         asst_det_id: parseInt(id),
         owner_det: {
-          name: ownerVerified ? propertyData.owner : newOwnerName,
-          mobile: mobileNumber
+          name: (ownerVerified ? propertyData?.owner : newOwnerName)?.trim() || '',
+          mobile: mobileNumber?.toString()?.trim() || ''
         },
-        str_det: isBuilding ? {
-          type: buildingType === 'apartment' ? 'Apartment' :
-                buildingType === 'row_house' ? 'Row House' : 'Independent',
-          floors: buildingType === 'apartment' ? `${totalFloors} Floors` : null,
-          prop_floor: buildingType === 'apartment' ? 
-                     `${apartmentFloor === '0' ? 'Ground' : 
-                       apartmentFloor === '1' ? '1st' :
-                       apartmentFloor === '2' ? '2nd' :
-                       apartmentFloor === '3' ? '3rd' :
-                       `${apartmentFloor}th`} Floor` : null
-        } : null,
-        area: totalArea ? totalArea.toString() : "",
-        usage: propertyDetails.buildingUsage || "Residential",
-        eb_num: propertyDetails.ebNumber || "",
-        images: {}
+        str_det: {
+          type: buildingType === 'independent' ? 'Individual House' :
+                buildingType === 'row_house' ? 'Row House' : 'Apartment',
+          floors: totalFloors ? `${totalFloors} Floors` : '0 Floors',
+          prop_floor: apartmentFloor === '0' ? 'Ground Floor' :
+                     apartmentFloor ? `${apartmentFloor}${
+                       apartmentFloor === '1' ? 'st' :
+                       apartmentFloor === '2' ? 'nd' :
+                       apartmentFloor === '3' ? 'rd' : 'th'} Floor` : 'Ground Floor'
+        },
+        area: (propertyDetails?.floorArea || '0').toString(),
+        usage: (propertyDetails?.buildingUsage === 'residential' ? 'Residential' :
+               propertyDetails?.buildingUsage === 'commercial' ? 'Commercial' :
+               propertyDetails?.buildingUsage === 'mixed' ? 'Mixed' :
+               propertyDetails?.buildingUsage === 'government' ? 'Government' :
+               propertyDetails?.buildingUsage === 'educational' ? 'Educational' : 'Residential'),
+        eb_num: (propertyDetails?.ebNumber || '').toString(),
+        images: {
+          image1: '',
+          image2: ''
+        }
       };
   
-      // Store the filter values before making API call
-      const filterValues = {
-        ward_id: propertyData.ward_id,
-        area_id: propertyData.area_id,
-        locality_id: propertyData.loc_id,
-        street_id: propertyData.street_id
-      };
+      // If there's professional tax info, add it
+      if (['commercial', 'mixed'].includes(propertyDetails?.buildingUsage?.toLowerCase())) {
+        payload.prof_tax = {
+          has_tax: Boolean(propertyDetails?.hasProfessionalTax),
+          tax_id: propertyDetails?.professionalTaxId?.toString() || ''
+        };
+      }
   
-      // Save filter values and set reload flag
-      localStorage.setItem('surveyFilters', JSON.stringify(filterValues));
-      localStorage.setItem('shouldReloadSurvey', 'true');
+      // Log the final payload
+      console.log('Final Payload:', JSON.stringify(payload, null, 2));
   
-      console.log("Sending data:", payload);
-  
-      const response = await fetch('https://dmapt.onlinetn.com/api/v1/survey', {
-        method: 'POST',
+      // Make the request
+      const response = await api.post('/survey', payload, {
         headers: {
           'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
   
-      console.log("Response status:", response.status);
-      
-      const data = await response.json();
-      console.log("Response data:", data);
+      // Log the response
+      console.log('API Response:', response);
   
-      if (response.ok) {
-        alert('Verification submitted successfully!');
-        // Here we're going back to survey form with saved filters
-        navigate(-1);
+      if (!response.data.error) {
+        // Store form data before navigating
+        localStorage.setItem('formData', JSON.stringify({
+          ward_id: propertyData.ward_id,
+          area_id: propertyData.area_id,
+          locality_id: propertyData.loc_id,
+          street_id: propertyData.street_id
+        }));
+
+        // Set flag to indicate we're coming from verification
+        sessionStorage.setItem('fromVerification', 'true');
+
+        setShowSuccessNotification(true);
+        setTimeout(() => {
+          navigate(-1);
+        }, 2000);
       } else {
-        alert('Failed to submit verification: ' + (data.message || 'Unknown error'));
+        throw new Error(response.data.message || 'Failed to submit');
       }
   
     } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to submit verification. Please try again.');
+      // Enhanced error logging
+      console.error('Complete Error Details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack,
+        config: error.config
+      });
+  
+      // Log the request that caused the error
+      if (error.config) {
+        console.log('Failed Request Config:', {
+          url: error.config.url,
+          method: error.config.method,
+          headers: error.config.headers,
+          data: JSON.parse(error.config.data) // Assuming data is JSON string
+        });
+      }
+  
+      if (error.response) {
+        console.log('Error Response:', error.response.data);
+        alert(`Server error: ${error.response.data?.message || 'Unknown server error occurred'}`);
+      } else if (error.request) {
+        console.log('No Response Received:', error.request);
+        alert('No response received from server. Please try again.');
+      } else {
+        console.log('Error Setup:', error.message);
+        alert(error.message || 'Failed to submit verification. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+  // Make sure these helper functions are present
+  const compressImage = async (dataUrl) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Target size
+        const maxWidth = 800;
+        const maxHeight = 800;
+        
+        let width = img.width;
+        let height = img.height;
+        
+        // Calculate dimensions
+        if (width > height && width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Compress with relatively low quality
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = dataUrl;
+    });
+  };
   
-  // Helper function to convert File to base64 string
   const convertFileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data:image/jpeg;base64,
-      reader.onerror = error => reject(error);
     });
   };
   const handlePropertyDetailsChange = (field, value) => {
@@ -526,94 +839,79 @@ const VerificationPage = () => {
 
 {/* Property Information */}
 <DetailSection title="Property Information">
-  <button 
-    className="lg:hidden w-full flex items-center justify-between p-2 mb-3 text-gray-700 bg-gray-100 rounded-lg"
-    onClick={() => setIsMobileExpanded(!isMobileExpanded)}
-  >
-    <span className="font-semibold">Property Details</span>
-    {isMobileExpanded ? (
-      <ChevronUp className="h-4 w-4 text-gray-500" />
-    ) : (
-      <ChevronDown className="h-4 w-4 text-gray-500" />
-    )}
-  </button>
-
+<button
+  className="lg:hidden w-full flex items-center justify-between p-2 mb-3 text-gray-700 bg-gray-100 rounded-lg"
+  onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+>
+  <span className="font-semibold">Property Details</span>
+  {isMobileExpanded ? (
+    <ChevronUp className="h-4 w-4 text-gray-500" />
+  ) : (
+    <ChevronDown className="h-4 w-4 text-gray-500" />
+  )}
+</button>
   <div className={`${!isMobileExpanded ? 'hidden lg:block' : ''}`}>
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-x-4 md:gap-y-3">
-        {/* First Column - spans full width on mobile, 2 cols on desktop */}
-        <div className="col-span-1 md:col-span-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-3 md:gap-y-3">
-            <div>
-              <p className="text-sm font-bold text-gray-700">Assessment ID</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.asst_ref}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Zone</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.zone_name}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Zone ID</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.zone_id}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Ward</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.ward_name}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Ward ID</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.ward_id}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Area</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.area_name}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Second Column - spans full width on mobile, 2 cols on desktop */}
-        <div className="col-span-1 md:col-span-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-3 md:gap-y-3">
-            <div>
-              <p className="text-sm font-bold text-gray-700">Area ID</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.area_id}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Street</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.street_name}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Locality ID</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.loc_id}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Locality</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.loc_name}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Door No</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.new_door}</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-700">Usage</p>
-              <p className="text-xs font-medium text-gray-500">{propertyData.usage_type}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Build Area - spans full width on mobile, 1 col on desktop */}
-        <div className="col-span-1">
+      <div className="grid grid-cols-1 gap-4">
+        {/* First Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <p className="text-sm font-bold text-gray-700">Build Area</p>
-            <p className="text-xs font-medium text-gray-500">{propertyData.build_area} sq.ft</p>
+            <p className="text-sm font-bold text-gray-700">Zone Name</p>
+            <p className="text-xs font-medium text-gray-500">{propertyData.zone_name}</p>
           </div>
-        </div>
+          <div>
+            <p className="text-sm font-bold text-gray-700">Area</p>
+            <p className="text-xs font-medium text-gray-500">{propertyData.area_name}</p>
+          </div>
+          <div>
+        <p className="text-sm font-bold text-gray-700">Locality</p>
+        <p className="text-xs font-medium text-gray-500">{propertyData.loc_name}</p>
       </div>
+      <div>
+        <p className="text-sm font-bold text-gray-700">Ward Number</p>
+        <p className="text-xs font-medium text-gray-500">{propertyData.ward_name}</p>
+      </div>
+      <div>
+        <p className="text-sm font-bold text-gray-700">Street</p>
+        <p className="text-xs font-medium text-gray-500">{propertyData.street_name}</p>
+      </div>
+          <div>
+            <p className="text-sm font-bold text-gray-700">Assessment Number</p>
+            <p className="text-xs font-medium text-gray-500">{propertyData.asst_ref}</p>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-700">Door No</p>
+            <p className="text-xs font-medium text-gray-500">{propertyData.new_door}</p>
+          </div>
+          <div>
+        <p className="text-sm font-bold text-gray-700">Usage</p>
+        <p className="text-xs font-medium text-gray-500">{propertyData.usage_type}</p>
+      </div>
+          <div>
+        <p className="text-sm font-bold text-gray-700">Build Area</p>
+        <p className="text-xs font-medium text-gray-500">{propertyData.build_area} sq.ft</p>
+      </div>
+        </div>
+        
+    
+        
+        {/* Second Row */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+  
+  
+     
+    </div>
+
+    {/* Third Row */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    
+   
     </div>
   </div>
+</div>
+</div>
 </DetailSection>
-
-{/* Owner Verification */}
 <DetailSection title="Owner Verification">
   <div className="space-y-4">
     <div className="flex items-center gap-4 bg-sky-50 p-4 rounded-xl">
@@ -625,62 +923,65 @@ const VerificationPage = () => {
       </div>
     </div>
 
-    <div className="space-y-4 max-w-full md:max-w-[800px] md:mt-4">
-      {/* Owner Name Verification with Mobile Input */}
+    {/* Changed max-w-[800px] to max-w-[50%] */}
+    <div className="space-y-4 max-w-full md:max-w-[30%] md:mt-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center">
-          <p className="text-sm text-gray-600 ml-2">Is this owner name correct?</p>
-          <div className="flex gap-2 ml-3">
-            <button
-              onClick={() => {
-                setOwnerVerified(true);
-                setNewOwnerName('');
-              }}
-              className="px-4 py-1 text-sm font-medium text-white bg-green-500 rounded-lg"
-            >
-              Yes
-            </button>
-            <button
-              onClick={() => setOwnerVerified(false)}
-              className="px-4 py-1 text-sm font-medium text-white bg-red-500 rounded-lg"
-            >
-              No
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Number Input - Now at the right end */}
-        {/* <div className="flex items-center gap-2">
-          <p className="text-sm text-gray-600">Enter mobile number:</p>
-          <input
-            type="tel"
-            value={mobileNumber}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, '');
-              if (value.length <= 10) setMobileNumber(value);
+        <div className="flex items-center ">
+          <p className="text-sm text-gray-600 ml-2 ">Is this owner name correct</p>
+          <button
+            onClick={() => {
+              setOwnerVerified(!ownerVerified);
+              if (!ownerVerified) setNewOwnerName('');
             }}
-            className="w-40 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-            placeholder="Enter mobile number"
-            maxLength="10"
-          />
-        </div> */}
+            className={`
+              relative inline-flex h-6 w-11 items-center rounded-full ml-3
+              ${ownerVerified ? 'bg-green-500' : 'bg-gray-200'}
+              transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2
+            `}
+          >
+            <span className="sr-only">Toggle owner verification</span>
+            <span
+              className={`
+                inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out
+                ${ownerVerified ? 'translate-x-6' : 'translate-x-1'}
+              `}
+            />
+          </button>
+          <span className="ml-2 text-sm text-gray-600">
+            {ownerVerified ? 'Yes' : 'No'}
+          </span>
+        </div>
       </div>
 
-      {/* Owner Name Input (Conditional) */}
-      {!ownerVerified && (
-        <div className="flex flex-col md:flex-row md:items-center gap-4 mt-4">
-          <input
-            type="text"
-            value={newOwnerName}
-            onChange={(e) => setNewOwnerName(e.target.value)}
-            className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-            placeholder="Enter correct owner name"
-          />
-        </div>
-      )}
+
+      {/* Owner Name Input (Always visible but conditionally disabled) */}
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mt-4">
+  <input
+    type="text"
+    value={newOwnerName}
+    onChange={(e) => {
+      // Only allow letters and spaces
+      const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+      setNewOwnerName(value);
+    }}
+    onKeyPress={(e) => {
+      // Prevent typing numbers and special characters
+      if (!/[A-Za-z\s]/.test(e.key)) {
+        e.preventDefault();
+      }
+    }}
+    disabled={ownerVerified}
+    className={`flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm ${
+      ownerVerified ? 'bg-gray-100' : 'bg-white'
+    }`}
+    pattern="[A-Za-z\s]+"
+    placeholder="Enter owner name"
+  />
+</div>
     </div>
   </div>
 </DetailSection>
+
         {/* Survey Details Section */}
         <DetailSection title="Survey Details">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -715,49 +1016,8 @@ const VerificationPage = () => {
               )}
             </div>
 
-            {/* <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Total Area (sq ft)
-              </label>
-              <input
-                type="number"
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                value={totalArea}
-                onChange={(e) => setTotalArea(e.target.value)}
-                required
-              />
-              {errors.totalArea && (
-                <p className="text-red-500 text-sm mt-1">{errors.totalArea}</p>
-              )}
-            </div> */}
+            
 
-            {/* <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Assessment ID
-              </label>
-              <input
-                type="text"
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 transition-all duration-300"
-                value={propertyData.asst_id}
-                readOnly
-              />
-            </div> */}
-
-            {/* Building Type Selection */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Is this a Building?
-              </label>
-              <select
-                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                value={isBuilding.toString()}
-                onChange={(e) => setIsBuilding(e.target.value === 'true')}
-                required
-              >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
 
             {isBuilding ? (
   <>
@@ -778,7 +1038,7 @@ const VerificationPage = () => {
         <option value="">Select Type</option>
         <option value="apartment">Apartment</option>
         <option value="row_house">Row House</option>
-        <option value="independent">Independent House</option>
+        <option value="independent">Induvidual House</option>
       </select>
       {errors.buildingType && (
         <p className="text-red-500 text-sm mt-1">{errors.buildingType}</p>
@@ -792,21 +1052,21 @@ const VerificationPage = () => {
             Total Number of Floors in Apartment
           </label>
           <select
-            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-            value={totalFloors}
-            onChange={(e) => {
-              setTotalFloors(e.target.value);
-              setApartmentFloor(''); // Reset floor selection when total floors changes
-            }}
-            required
-          >
-            <option value="">Select Total Floors</option>
-            {[...Array(10)].map((_, i) => (
-              <option key={i + 1} value={i + 1}>
-                {i + 1} Floor{i > 0 ? 's' : ''}
-              </option>
-            ))}
-          </select>
+  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+  value={totalFloors}
+  onChange={(e) => {
+    setTotalFloors(e.target.value);
+    setApartmentFloor('');
+  }}
+  required
+>
+<option value="">Select Total Floors</option>
+      {[...Array(9)].map((_, i) => ( // Changed from 10 to 9 and start index from 1
+        <option key={i + 1} value={i + 1}>
+          G+{i + 1}  {/* Changed to start from G+1 */}
+        </option>
+  ))}
+</select>
         </div>
 
         {totalFloors && (
@@ -833,26 +1093,25 @@ const VerificationPage = () => {
 
         {/* Show Roof Structure only if selected floor equals total floors */}
         {totalFloors && apartmentFloor === totalFloors && (
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold text-gray-700">
-              Roof Structure
-            </label>
-            <select
-              className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-              value={buildingStructure}
-              onChange={(e) => setBuildingStructure(e.target.value)}
-              required
-            >
-              <option value="">Select Type</option>
-              <option value="ac">AC Sheet</option>
-              <option value="thatched">Thatched</option>
-              <option value="rcc">RCC Sheet</option>
-            </select>
-            {errors.buildingStructure && (
-              <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
-            )}
-          </div>
-        )}
+  <div className="space-y-3">
+    <label className="block text-sm font-semibold text-gray-700">
+      Roof Structure
+    </label>
+    <select
+      className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+      value={buildingStructure}
+      onChange={(e) => setBuildingStructure(e.target.value)}
+      required
+    >
+      <option value="">Select Type</option>
+      <option value="ac">AC Sheet</option>
+      <option value="rcc">RCC Sheet</option>
+    </select>
+    {errors.buildingStructure && (
+      <p className="text-red-500 text-sm mt-1">{errors.buildingStructure}</p>
+    )}
+  </div>
+)}
       </>
     )}
 
@@ -881,7 +1140,7 @@ const VerificationPage = () => {
   </>
 ) : (
   <>
-    {/* <div className="space-y-3">
+    { <div className="space-y-3">
       <label className="block text-sm font-semibold text-gray-700">
         Current Usage
       </label>
@@ -900,33 +1159,14 @@ const VerificationPage = () => {
       {errors.currentUsage && (
         <p className="text-red-500 text-sm mt-1">{errors.currentUsage}</p>
       )}
-    </div>
+    </div>}
 
-    <div className="space-y-3">
-      <label className="block text-sm font-semibold text-gray-700">
-        Current Structure
-      </label>
-      <select
-        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-        value={currentStructure}
-        onChange={(e) => setCurrentStructure(e.target.value)}
-        required
-      >
-        <option value="">Select Structure</option>
-        <option value="open">Open Land</option>
-        <option value="fenced">Fenced</option>
-        <option value="paved">Paved</option>
-        <option value="landscaped">Landscaped</option>
-      </select>
-      {errors.currentStructure && (
-        <p className="text-red-500 text-sm mt-1">{errors.currentStructure}</p>
-      )}
-    </div> */}
+
 
     {/* Added EB Number field */}
     <div className="space-y-3">
       <label className="block text-sm font-semibold text-gray-700">
-        EB Number
+        EB Numbers
       </label>
       <input
         type="text"
@@ -981,26 +1221,18 @@ const VerificationPage = () => {
             )}
           </div>
         </DetailSection>
-
-    {/* Property Details Section - Only show if isBuilding is true */}
-{isBuilding && (
+        {isBuilding && (
   <DetailSection title="Property Details as Observed">
     <PropertyDetailsForm
       onChange={handlePropertyDetailsChange}
       data={propertyDetails}
+      propertyPhotos={propertyPhotos}
+      setPropertyPhotos={setPropertyPhotos}
+      previousArea={propertyData.build_area} // Add this to pass build area
     />
   </DetailSection>
 )}
 
-{/* Location Map Section */}
-<DetailSection title="Location Verification">
-  <LocationMap
-    onLocationSelect={(location) => {
-      setUserLocation(location);
-      console.log("Selected location:", location);
-    }}
-  />
-</DetailSection>
 
 {/* Submit Button */}
 <div className="flex justify-center mt-12 mb-12">

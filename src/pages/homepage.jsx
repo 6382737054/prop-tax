@@ -101,13 +101,14 @@ const HomePage = () => {
 
               {/* Right Side - User Info & Survey Button */}
               <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate('/filters')}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-[#041013] rounded-lg hover:bg-[#75d1e3]/10 transition-colors duration-200 font-medium text-sm whitespace-nowrap"
-                >
-                  Start Survey
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+              <button                   
+  onClick={() => navigate('/filters')}                   
+  className="flex items-center gap-2 px-4 py-2 bg-white text-[#041013] rounded-lg hover:bg-white 
+  hover:shadow-md transition-all duration-200 font-medium text-sm whitespace-nowrap"                 
+>                   
+  Start Survey                   
+  <ArrowRight className="h-4 w-4" />                 
+</button>
               </div>
             </div>
           </div>

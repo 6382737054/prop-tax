@@ -251,7 +251,8 @@ const SurveyForm = () => {
     setFormData(prevData => {
       const newData = { ...prevData };
       newData[name] = value;
-      
+  
+      // Update the form data based on the field that was changed
       switch (name) {
         case 'ward_id':
           newData.area_id = '';
@@ -259,27 +260,32 @@ const SurveyForm = () => {
           newData.street_id = '';
           if (value) fetchAreas(value);
           break;
-          
+  
         case 'area_id':
           newData.locality_id = '';
           newData.street_id = '';
           if (value) fetchLocalities(newData.ward_id, value);
           break;
-          
+  
         case 'locality_id':
           newData.street_id = '';
           if (value) fetchStreets(newData.ward_id, newData.area_id, value);
           break;
       }
-      
+  
+      // Store the updated form data in local storage
+      localStorage.setItem('formData', JSON.stringify(newData));
+  
       return newData;
     });
-
+  
+    // Clear any previous errors for the field that was changed
     setFormErrors(prev => ({
       ...prev,
       [name]: ''
     }));
-
+  
+    // Reset the search results
     setSearchResults([]);
   };
 
@@ -296,43 +302,104 @@ const SurveyForm = () => {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    
+  
     if (!validateForm()) return;
-
+  
     try {
       setSearchLoading(true);
       const userData = JSON.parse(localStorage.getItem('userData'));
       const token = userData?.authToken;
       setSearchLoading(true);
       setHasSearched(true);
-      
+  
       if (!token) {
         console.error('No auth token found');
         return;
       }
-
+  
       const url = `/asset?org_name=${encodeURIComponent(userOrgName)}&ward_id=${formData.ward_id}&area_id=${formData.area_id}&loc_id=${formData.locality_id}&street_id=${formData.street_id}`;
-
+  
       const response = await api.get(url, {
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
         }
       });
-
-      setSearchResults(response.data?.data || []);
+  
+      const searchResults = response.data?.data || [];
+      setSearchResults(searchResults);
+  
+      // Store the search results in local storage
+      localStorage.setItem('searchResults', JSON.stringify(searchResults));
     } catch (error) {
       console.error('Search API Error:', error);
       setSearchResults([]);
     } finally {
       setSearchLoading(false);
     }
-  };
-
-  useEffect(() => {
+  };useEffect(() => {
+    // Fetch user data and wards
     fetchUserDataAndWards();
-  }, []);
-
+  
+    // Check if we're coming from verification page
+    const fromVerification = sessionStorage.getItem('fromVerification');
+    
+    if (fromVerification) {
+      // Get and set the form data
+      const storedFormData = JSON.parse(localStorage.getItem('formData'));
+      if (storedFormData) {
+        setFormData(storedFormData);
+        
+        // Fetch all dependent data
+        if (storedFormData.ward_id) {
+          fetchAreas(storedFormData.ward_id);
+        }
+        if (storedFormData.area_id) {
+          fetchLocalities(storedFormData.ward_id, storedFormData.area_id);
+        }
+        if (storedFormData.locality_id) {
+          fetchStreets(storedFormData.ward_id, storedFormData.area_id, storedFormData.locality_id);
+        }
+  
+        // Trigger search automatically
+        (async () => {
+          try {
+            setSearchLoading(true);
+            const userData = JSON.parse(localStorage.getItem('userData'));
+            const token = userData?.authToken;
+            setHasSearched(true);
+  
+            if (!token) {
+              console.error('No auth token found');
+              return;
+            }
+  
+            const url = `/asset?org_name=${encodeURIComponent(userOrgName)}&ward_id=${storedFormData.ward_id}&area_id=${storedFormData.area_id}&loc_id=${storedFormData.locality_id}&street_id=${storedFormData.street_id}`;
+  
+            const response = await api.get(url, {
+              headers: {
+                'Authorization': token,
+                'Content-Type': 'application/json'
+              }
+            });
+  
+            const results = response.data?.data || [];
+            setSearchResults(results);
+          } catch (error) {
+            console.error('Search API Error:', error);
+            setSearchResults([]);
+          } finally {
+            setSearchLoading(false);
+          }
+        })();
+      }
+      
+      // Clear the flags and storage
+      sessionStorage.removeItem('fromVerification');
+      localStorage.removeItem('formData');
+    }
+  }, [userOrgName]); // Added userOrgName as dependency
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -466,9 +533,9 @@ const SurveyForm = () => {
   className="w-full px-8 py-3.5 bg-[#75d1e3] text-white rounded-xl hover:bg-[#5dbdd0] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
 >
   {searchLoading ? (
-    <div className="animate-spin rounded-full h-5 w-5 border-b-2  border-white"></div>
+    <div className="animate-spin rounded-full h-5 w-5 border-b-2 colo border-white"></div>
   ) : (
-    <Search className="h-5 w-5 color" />
+    <Search className="h-5 w-5" />
   )}
   Search
 </button>

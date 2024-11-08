@@ -12,6 +12,17 @@
     animation: App-logo-spin infinite 20s linear;
   }
 }
+input[type="number"] {
+  -moz-appearance: textfield; /* For Firefox */
+  appearance: none; /* For WebKit browsers like Chrome, Safari */
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0; /* Optional: to reset margin */
+}
+
 
 .App-header {
   background-color: #282c34;

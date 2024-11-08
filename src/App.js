@@ -51,6 +51,10 @@ function App() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('sessionData');
     localStorage.removeItem('userData');
+    localStorage.removeItem('formData')
+    localStorage.removeItem('searchResults')
+    localStorage.removeItem('surveyFilters')
+    localStorage.removeItem('shouldReloadSurvey')
     // Don't remove rememberedUser as it's used for the "Remember Me" feature
     setIsLoggedIn(false);
   };
